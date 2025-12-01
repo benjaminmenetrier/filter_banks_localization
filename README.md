@@ -1,2 +1,2 @@
-# filter_banks_localization
-Filter banks localization documentation
+# Filter banks localization
+Filter banks localization documentation, note and plots.
