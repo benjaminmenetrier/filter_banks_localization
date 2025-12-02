@@ -118,10 +118,10 @@ where:
 \end{itemize}
 
 \section{Generalized EnVar formulation}
-The standard EnVar formulation can be generalized by introducing two linear transforms $\mathbf{F} \in \mathbb{R}^{\widehat{n} \times n}$ and $\mathbf{F}^\dag \in \mathbb{R}^{n \times \widehat{n}}$:
+The standard EnVar formulation can be generalized by introducing two linear transforms $\mathbf{F} \in \mathbb{R}^{n \times \widehat{n}}$ and $\mathbf{F}^\dag \in \mathbb{R}^{\widehat{n} \times n}$:
 \begin{align}
-\widehat{\mathbf{B}} & = \mathbf{F}^\dag \left(\mathbf{F} \left(\mathbf{X} \mathbf{X}^\mathrm{T}\right) \mathbf{F}^\mathrm{T} \circ \widehat{\mathbf{L}}\right) \left(\mathbf{F}^\dag\right)^\mathrm{T} \\
-\delta \mathbf{x} & = \mathbf{F}^\dag \sum_{j=1}^N \left(\mathbf{F} \mathbf{X}_{:j}\right) \circ \left(\widehat{\mathbf{U}} \widehat{\mathbf{v}}_j\right)
+\widehat{\mathbf{B}} & = \mathbf{F} \left(\left(\mathbf{F}^\dag \mathbf{X}\right) \left(\mathbf{F}^\dag \mathbf{X}\right)^\mathrm{T} \circ \widehat{\mathbf{L}}\right) \mathbf{F}^\mathrm{T} \\
+\delta \mathbf{x} & = \mathbf{F} \sum_{j=1}^N \left(\mathbf{F}^\dag \mathbf{X}_{:j}\right) \circ \left(\widehat{\mathbf{U}} \widehat{\mathbf{v}}_j\right)
 \end{align}
 where: 
 \begin{itemize}
@@ -135,7 +135,7 @@ Let's analyse the asymptotic values if the ensemble size grows to infinity:
 \item As a consequence:
 \begin{align}
 \lim_{N \rightarrow \infty} \mathbf{B} & = \mathbf{X} \mathbf{X}^\mathrm{T} \\
-\lim_{N \rightarrow \infty} \widehat{\mathbf{B}} & = \left(\mathbf{F}^\dag \mathbf{F} \mathbf{X}\right) \left(\mathbf{F}^\dag \mathbf{F} \mathbf{X}\right)^\mathrm{T}
+\lim_{N \rightarrow \infty} \widehat{\mathbf{B}} & = \left(\mathbf{F} \mathbf{F}^\dag \mathbf{X}\right) \left(\mathbf{F} \mathbf{F}^\dag \mathbf{X}\right)^\mathrm{T}
 \end{align}
 \item To ensure consistency, linear transforms $\mathbf{F}$ and $\mathbf{F}^\dag$ should not have an impact on the asymptotic background error covariance:
 \begin{align}
@@ -143,18 +143,18 @@ Let's analyse the asymptotic values if the ensemble size grows to infinity:
 \end{align}
 so
 \begin{align}
-\mathbf{F}^\dag \mathbf{F} \mathbf{X} = \mathbf{X}
+\mathbf{F} \mathbf{F}^\dag \mathbf{X} = \mathbf{X}
 \end{align}
-Thus, $\mathbf{F}^\dag$ should be a left-inverse of $\mathbf{F}$ in the ensemble perturbations space.
+Thus, $\mathbf{F}^\dag$ should be a right-inverse of $\mathbf{F}$ in the ensemble perturbations space.
 \end{itemize}
 
-The content of $\mathbf{F}$ can be very diverse:
+The content of $\mathbf{F}$ and $\mathbf{F}^\dag$ can be very diverse:
 \begin{itemize}
 \item A change of variables: for instance towards a better-suited humidity variable.
 \item A inverse balance operator as in \citet{clayton_2012}, where the localization is applied on unbalanced variables and the balance operator is finally applied to get the increment.
-\item A change of resolution as in \citet{kleist_2014a}, where the ensemble resolution is lower than the final increment one. In this case, $\mathbf{F}^\dag$ is an interpolation from low to high resolution, and the low-resolution perturbations $\mathbf{X}_\mathrm{LR}$ can be thought as the application of a coarsening operator $\mathbf{F}$ on virtual high-resolution perturbations $\mathbf{X}_\mathrm{HR}$ representing the same field:
+\item A change of resolution as in \citet{kleist_2014a}, where the ensemble resolution is lower than the final increment one. In this case, $\mathbf{F}$ is an interpolation from low to high resolution, and the low-resolution perturbations $\mathbf{X}_\mathrm{LR}$ can be thought as the application of a coarsening operator $\mathbf{F}^\dag$ on virtual high-resolution perturbations $\mathbf{X}_\mathrm{HR}$ representing the same field:
 \begin{align}
-\mathbf{F}^\dag \mathbf{X}_\mathrm{LR} = \mathbf{F}^\dag \mathbf{F} \mathbf{X}_\mathrm{HR} = \mathbf{X}_\mathrm{HR}
+\mathbf{F} \mathbf{X}_\mathrm{LR} = \mathbf{F} \mathbf{F}^\dag \mathbf{X}_\mathrm{HR} = \mathbf{X}_\mathrm{HR}
 \end{align}
 \end{itemize}
 
@@ -164,7 +164,7 @@ In the filter banks localization (FBL) framework, we define two series of $P-1$ 
 \item The low-pass filters $\left\{\mathbf{G}_1,\dots,\mathbf{G}_{P-1}\right\}$, where $\mathbf{G}_p \in \mathbb{R}^{\widehat{n}_p \times n}$.
 \item The interpolators $\left\{\mathbf{S}_1,\dots,\mathbf{S}_{P-1}\right\}$, where $\mathbf{S}_p \in \mathbb{R}^{n \times \widehat{n}_p}$.
 \end{itemize}
-The components of $\mathbf{F}$ are built recursively:
+The components of $\mathbf{F}^\dag$ are built recursively:
 \begin{itemize}
 \item The low-pass filter $\mathbf{G}_1$ is applied to the input $\mathbf{x} \in \mathbb{R}^n$ to produce $\widehat{\mathbf{x}}_1 \in \mathbb{R}^{\widehat{n}_1}$:
 \begin{align}
@@ -239,9 +239,9 @@ From this illustration, it becomes obvious that the reconstruction of $\mathbf{x
 \mathbf{x} = \sum_{p=1}^{P-1} \mathbf{S}_p \widehat{\mathbf{x}}_p + \overline{\mathbf{x}}_{P-1}
 \end{align}
 
-Formally, the linear transform $\mathbf{F}$ can be written as:
+Formally, the linear transform $\mathbf{F}^\dag$ can be written as:
 \begin{align}
-\mathbf{F} = \left( \begin{array}{c}
+\mathbf{F}^\dag = \left( \begin{array}{c}
 \mathbf{G}_1 \\
 \mathbf{G}_2 \left(\mathbf{I}_n - \mathbf{S}_1 \mathbf{G}_1\right) \\
 \vdots \\
@@ -258,9 +258,9 @@ where:
 \end{align}
 \item The total size of the transformed space is $\displaystyle \widehat{n} = \sum_{p=1}^{P-1} n_p + n$.
 \end{itemize} 
-The left-inverse of $\mathbf{F}$ is simply:
+The left-inverse of $\mathbf{F}^\dag$ is simply:
 \begin{align}
-\mathbf{F}^\dag = \left(\mathbf{S}_1 \mathbf{S}_2 \dots \mathbf{S}_{P-1} \mathbf{I}_n\right)
+\mathbf{F} = \left(\mathbf{S}_1 \mathbf{S}_2 \dots \mathbf{S}_{P-1} \mathbf{I}_n\right)
 \end{align}
 
 \section{Scale-dependent localization}
@@ -290,7 +290,7 @@ where the i$^\text{th}$ coefficient of the diagonal normalization matrix $\mathb
 
 To illustrate the similarities and differences between the SDL and IFBL methods, we start from a random field $\mathbf{x}$ with different scales depending on the location in Figure \ref{fig:init}. In Figure \ref{fig:filt_1}, the filtered field $\widehat{\mathbf{x}}_1$ at low resolution captures the largest scales of the signal. These scales are removed in the corresponding residual $\overline{\mathbf{x}}_1$, in Figure \ref{fig:res_1}. In Figure \ref{fig:filt_2}, the filtered field $\widehat{\mathbf{x}}_2$ at intermediate resolution captures the intermediate scales of the signal. Only the smallest scale are left in the final residual $\overline{\mathbf{x}}_2$, in Figure \ref{fig:res_2}.\\
 $  $\\
-Here, the SDL uses the \texttt{scipy.ndimage.gaussian\_filter} function of \texttt{Python} for $\mathbf{F}_p$. The IFBL uses a standard bilinear interpolation. The filtering scales of the SDL and the low-resolution grids of the IFBL have been briefly tuned to yield visually similar results.
+Here, the SDL uses the \texttt{scipy.ndimage.gaussian\_filter} function of \texttt{Python} for $\mathbf{G}_p$. The IFBL uses a standard bilinear interpolation. The filtering scales of the SDL and the low-resolution grids of the IFBL have been briefly tuned to yield visually similar results.
 
 \begin{center}
 \includegraphics[width=0.49\linewidth]{init.pdf}
