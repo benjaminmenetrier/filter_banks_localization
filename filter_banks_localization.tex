@@ -159,34 +159,32 @@ The content of $\mathbf{F}$ and $\mathbf{F}^\dag$ can be very diverse:
 \end{itemize}
 
 \section{Filter banks localization}
-In the filter banks localization (FBL) framework, we define two series of $P-1$ linear transforms:
+In the filter banks localization (FBL) framework, we define three series of linear transforms:
 \begin{itemize}
 \item The low-pass filters $\left\{\mathbf{G}_1,\dots,\mathbf{G}_{P-1}\right\}$, where $\mathbf{G}_p \in \mathbb{R}^{\widehat{n}_p \times n}$.
+\item The band-pass filters $\left\{\mathbf{H}_1,\dots,\mathbf{H}_P\right\}$, where $\mathbf{H}_p \in \mathbb{R}^{\widehat{n}_p \times n}$.
 \item The interpolators $\left\{\mathbf{S}_1,\dots,\mathbf{S}_{P-1}\right\}$, where $\mathbf{S}_p \in \mathbb{R}^{n \times \widehat{n}_p}$.
 \end{itemize}
-The components of $\mathbf{F}^\dag$ are built recursively:
+where $\widehat{n}_p$ is the filtered space size at iteration $p$, with $\widehat{n}_P = n$.
+
+\subsection{From explicit low-pass filters}
+If the low-pass filters $\mathbf{G}_p$ are explicitly provided, the components of $\mathbf{F}^\dag$ are built recursively:
 \begin{itemize}
-\item The low-pass filter $\mathbf{G}_1$ is applied to the input $\mathbf{x} \in \mathbb{R}^n$ to produce $\widehat{\mathbf{x}}_1 \in \mathbb{R}^{\widehat{n}_1}$:
+\item The initial residual is given by the input state: $\overline{\mathbf{x}}_0 = \mathbf{x}$
+\item At each iteration $1 \le p \le P-1$:
+\begin{itemize}
+\item The low-pass filter $\mathbf{G}_p$ is applied to the previous residual $\overline{\mathbf{x}}_{p-1} \in \mathbb{R}^n$ to produce the new filtered component $\widehat{\mathbf{x}}_p \in \mathbb{R}^{\widehat{n}_p}$:
 \begin{align}
-\widehat{\mathbf{x}}_1 = \mathbf{G}_1 \mathbf{x}
+\label{eq:lp1}
+\widehat{\mathbf{x}}_p = \mathbf{G}_p \overline{\mathbf{x}}_{p-1}
 \end{align}
-\item The residual is computed from $\widehat{\mathbf{x}}_1$, interpolated at full resolution:
+\item The new residual is computed from $\widehat{\mathbf{x}}_p$, interpolated at full resolution with $\mathbf{S}_p$:
 \begin{align}
-\overline{\mathbf{x}}_1 = \mathbf{x} - \mathbf{S}_1 \widehat{\mathbf{x}}_1
+\label{eq:lp2}
+\overline{\mathbf{x}}_p & = \overline{\mathbf{x}}_{p-1} - \mathbf{S}_p \widehat{\mathbf{x}}_p \\
+& = \left(\mathbf{I}_n - \mathbf{S}_p \mathbf{G}_p\right) \overline{\mathbf{x}}_{p-1}
 \end{align}
-\item The low-pass filter $\mathbf{G}_2$ is applied to $\overline{\mathbf{x}}_1$ to produce $\widehat{\mathbf{x}}_2 \in \mathbb{R}^{\widehat{n}_2}$:
-\begin{align}
-\widehat{\mathbf{x}}_2 = \mathbf{G}_2 \overline{\mathbf{x}}_1
-\end{align}
-\item The residual is computed from $\widehat{\mathbf{x}}_2$, interpolated at full resolution:
-\begin{align}
-\overline{\mathbf{x}}_2 = \overline{\mathbf{x}}_1 - \mathbf{S}_2 \widehat{\mathbf{x}}_2
-\end{align}
-\item The process continues until the low-pass filter $P-1$:
-\begin{align}
-\widehat{\mathbf{x}}_{P-1} & = \mathbf{G}_{P-1} \overline{\mathbf{x}}_{P-2} \\
-\overline{\mathbf{x}}_{P-1} & = \overline{\mathbf{x}}_{P-2} - \mathbf{S}_{P-1} \widehat{\mathbf{x}}_{P-1}
-\end{align}
+\end{itemize}
 \end{itemize}
 This construction can be illustrated as follows:
 \begin{center}
@@ -199,95 +197,134 @@ This construction can be illustrated as follows:
 
 % Filter 1
 \node [block, right of=input, node distance=3.0cm] (F1) {$\mathbf{G}_1$};
-\node [right of=F1, node distance=3.2cm, yshift=-0.02cm] (F1x) {$\widehat{\mathbf{x}}_1$};
+\node [right of=F1, node distance=2.7cm, yshift=-0.02cm] (F1x) {$\widehat{\mathbf{x}}_1$};
 \node [block, below of=F1, node distance=1.0cm] (ImF1) {$\mathbf{I}_n - \mathbf{S}_1 \mathbf{G}_1$};
+\node [right of=ImF1, node distance=2.7cm, yshift=-0.02cm] (ImF1x) {$\overline{\mathbf{x}}_1$};
 \path (input) -- coordinate(branch1) (F1);
 \draw[->] (input) -- (F1);
 \draw[->] (F1) -- ([yshift=0.02cm]F1x.west);
+\draw[->] (ImF1) -- ([yshift=0.02cm]ImF1x.west);
 \draw[->] (branch1) node[branch] {} |- (ImF1);
 
 % Filter 2
-\node [block, right of=ImF1, node distance=4.2cm] (F2) {$\mathbf{G}_2$};
-\node [right of=F2, node distance=3.2cm, yshift=-0.02cm] (F2x) {$\widehat{\mathbf{x}}_2$};
+\node [block, right of=ImF1, node distance=5.8cm] (F2) {$\mathbf{G}_2$};
+\node [right of=F2, node distance=2.7cm, yshift=-0.02cm] (F2x) {$\widehat{\mathbf{x}}_2$};
 \node [block, below of=F2, node distance=1.0cm] (ImF2) {$\mathbf{I}_n - \mathbf{S}_2 \mathbf{G}_2$};
-\path (ImF1) -- coordinate(branch2) (F2);
-\draw[->] (ImF1) -- (F2);
+\node [right of=ImF2, node distance=2.7cm, yshift=-0.02cm] (ImF2x) {$\overline{\mathbf{x}}_2$};
+\path (ImF1x) -- coordinate(branch2) (F2);
+\draw[->] (ImF1x) -- (F2);
 \draw[->] (F2) -- ([yshift=0.02cm]F2x.west);
+\draw[->] (ImF2) -- ([yshift=0.02cm]ImF2x.west);
 \draw[->] (branch2) node[branch] {} |- (ImF2);
 
-% Dots
-\node[right of=ImF2, node distance=3.2cm] (dots1) {$\dots$};
-\draw[->] (ImF2) -- (dots1);
-\node[right of=dots1, node distance=1.0cm, yshift=-0.5cm] (dots2) {$\dots$};
-\node[right of=dots2, node distance=1.0cm, yshift=-0.5cm] (dots3) {$\dots$};
+% Etc
+\node [right of=ImF2x, node distance=2.0cm] (dots1) {\dots};
+\node [below of=dots1, node distance=1.0cm] (dots2) {\dots};
+\path (ImF2x) -- coordinate(branch3) (dots1);
+\draw[->] (ImF2x) -- (dots1);
+\draw[->] (branch3) node[branch] {} |- (dots2);
 
-% Filter P-1
-\node [block, right of=dots3, node distance=3.2cm] (FPm1) {$\mathbf{G}_{P-1}$};
-\node [right of=FPm1, node distance=3.2cm, yshift=-0.02cm] (FPm1x) {$\widehat{\mathbf{x}}_{P-1}$};
-\node [block, below of=FPm1, node distance=1.0cm] (ImFPm1) {$\mathbf{I}_n - \mathbf{S}_{P-1} \mathbf{G}_{P-1}$};
-\node [right of=ImFPm1, node distance=3.0cm, yshift=-0.05cm] (ImFPm1x) {$\overline{\mathbf{x}}_{P-1}$};
-\path (dots3) -- coordinate(branchPm1) (FPm1);
-\draw[->] (dots3) -- (FPm1);
-\draw[->] (FPm1) -- ([yshift=0.02cm]FPm1x.west);
-\draw[->] (ImFPm1) -- ([yshift=0.05cm]ImFPm1x.west);
-\draw[->] (branchPm1) node[branch] {} |- (ImFPm1);
 \end{tikzpicture}
 \end{center}
 
-From this illustration, it becomes obvious that the reconstruction of $\mathbf{x}$ from the successive components is given by:
+Integrating recursively, the residual at iteration $p$ becomes:
 \begin{align}
-\mathbf{x} = \sum_{p=1}^{P-1} \mathbf{S}_p \widehat{\mathbf{x}}_p + \overline{\mathbf{x}}_{P-1}
+\label{eq:lp3}
+\overline{\mathbf{x}}_p & = \left(\mathbf{I}_n - \mathbf{S}_p \mathbf{G}_p\right) \left(\mathbf{I}_n - \mathbf{S}_{p-1} \mathbf{G}_{p-1}\right) \dots \left(\mathbf{I}_n - \mathbf{S}_1 \mathbf{G}_1\right) \mathbf{x} \nonumber \\
+& = \displaystyle \prod_{q=1}^p \left(\mathbf{I}_n - \mathbf{S}_q \mathbf{G}_q\right) \mathbf{x}
 \end{align}
+and from \eqref{eq:lp1}, we obtain the filtered component at iteration $p$:
+\begin{align}
+\label{eq:lp4}
+\widehat{\mathbf{x}}_p & = \mathbf{G}_p \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{S}_q \mathbf{G}_q\right) \mathbf{x}
+\end{align}
+
+By definition, the band-pass filter $\mathbf{H}_p$ applied directly to the input state $\mathbf{x}$ should provide the filtered component $\widehat{\mathbf{x}}_p$:
+\begin{align}
+\mathbf{H}_p \mathbf{x} = \widehat{\mathbf{x}}_p
+\end{align}
+Combining this equation with \eqref{eq:lp4}, we get an equivalence between low-pass and band-pass filters for $1 \le p \le P-1$:
+\begin{align}
+\mathbf{H}_p = \mathbf{G}_p \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{S}_q \mathbf{G}_q\right)
+\end{align}
+The last band-pass filter $\mathbf{H}_P$ applied to the input state should produce the last residual:
+\begin{align}
+\mathbf{H}_P \mathbf{x} & = \overline{\mathbf{x}}_{P-1}
+\end{align}
+So equation \eqref{eq:lp3} gives:
+\begin{align}
+\mathbf{H}_P = \prod_{q=1}^{P-1} \left(\mathbf{I}_n - \mathbf{S}_q \mathbf{G}_q\right)
+\end{align}
+But integrating equation \eqref{eq:lp2} recursively, the last residual can also be expressed as:
+\begin{align}
+\overline{\mathbf{x}}_{P-1} & = \mathbf{x} - \sum_{p=1}^{P-1} \mathbf{S}_p \widehat{\mathbf{x}}_p \nonumber \\
+ & = \mathbf{x} - \sum_{p=1}^{P-1} \mathbf{S}_p \mathbf{H}_p \mathbf{x}
+\end{align}
+Which proves that the last band-pass filter is actually the complement of the sum of all the previous band-pass filters combined with the corresponding interpolations:
+\begin{align}
+\mathbf{H}_P = \mathbf{I}_n - \sum_{p=1}^{P-1} \mathbf{S}_p \mathbf{H}_p
+\end{align}
+Figure \ref{fig:lp_to_bp} shows an example of spectra for explicit low-pass filters with Gaussian shapes, resulting for instance from a diffusion process, and their equivalent band-pass filters.\\
+\begin{center}
+\includegraphics[width=0.49\linewidth]{lp_to_bp.pdf}
+\captionof{figure}{Spectra of explicit low-pass filters (top) and their equivalent band-pass filters (bottom). The dashed black line shows the sum of all the band-pass filters. \label{fig:lp_to_bp}}
+\end{center}
 
 Formally, the linear transform $\mathbf{F}^\dag$ can be written as:
 \begin{align}
 \mathbf{F}^\dag = \left( \begin{array}{c}
-\mathbf{G}_1 \\
-\mathbf{G}_2 \left(\mathbf{I}_n - \mathbf{S}_1 \mathbf{G}_1\right) \\
+\mathbf{H}_1 \\
+\mathbf{H}_2 \\
 \vdots \\
-\displaystyle \mathbf{G}_{P-1} \prod_{p=1}^{P-2} \left(\mathbf{I}_n - \mathbf{S}_p \mathbf{G}_p\right) \\
-\displaystyle \prod_{p=1}^{P-1} \left(\mathbf{I}_n - \mathbf{S}_p \mathbf{G}_p\right) 
+\mathbf{H}_P
 \end{array}
 \right)
 \end{align}
-where:
-\begin{itemize}
-\item The sign $\prod$ should be understood as:
-\begin{align}
-\prod_{p=1}^{P-1} \left(\mathbf{I}_n - \mathbf{S}_p \mathbf{G}_p\right) = \left(\mathbf{I}_n - \mathbf{S}_{P-1} \mathbf{G}_{P-1}\right) \left(\mathbf{I}_n - \mathbf{S}_{P-2} \mathbf{G}_{P-2}\right) \dots \left(\mathbf{I}_n - \mathbf{S}_1 \mathbf{G}_1\right)
-\end{align}
-\item The total size of the transformed space is $\displaystyle \widehat{n} = \sum_{p=1}^{P-1} n_p + n$.
-\end{itemize} 
-The left-inverse of $\mathbf{F}^\dag$ is simply:
+where the total size of the transformed space is $\displaystyle \widehat{n} = \sum_{p=1}^P n_p$. The left-inverse of $\mathbf{F}^\dag$ is simply:
 \begin{align}
 \mathbf{F} = \left(\mathbf{S}_1 \mathbf{S}_2 \dots \mathbf{S}_{P-1} \mathbf{I}_n\right)
 \end{align}
 
-\section{Scale-dependent localization}
-The scale-dependent localization (SDL) described in \citet{buehner_2015b} can be seen as a special case of filter banks localization (FBL), where:
+\subsection{From explicit band-pass filters}
+Starting from explicit band-pass filters $\mathbf{H}_p$, it is easier to construct the linear transform $\mathbf{F}^\dag$. It is also possible to retrieve the corresponding low-pass filters iteratively:
+\begin{itemize}
+\item The initial low-pass filter is equal to the initial band-pass filter:
+\begin{align}
+\mathbf{G}_1 = \mathbf{H}_1
+\end{align}
+\item For $2 \le p \le P-1$, the low-pass filter $\mathbf{G}_p$ is given by:
+\begin{align}
+\mathbf{G}_p & = \mathbf{H}_p \left(\mathbf{I}_n - \mathbf{S}_1 \mathbf{G}_1\right)^\dag \left(\mathbf{I}_n - \mathbf{S}_2 \mathbf{G}_2\right)^\dag \dots \left(\mathbf{I}_n - \mathbf{S}_{p-1} \mathbf{G}_{p-1}\right)^\dag \nonumber \\
+& = \mathbf{H}_p \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{S}_{p-q} \mathbf{G}_{p-q}\right)^\dag
+\end{align}
+\end{itemize}
+where $\left(\mathbf{I}_n - \mathbf{S}_p \mathbf{G}_p\right)^\dag$ is a right-inverse of $\left(\mathbf{I}_n - \mathbf{S}_p \mathbf{G}_p\right)$. Figure \ref{fig:bp_to_lp} shows an example of spectra for explicit band-pass filters with wavelet-like shapes, and their equivalent low-pass filters.\\
+\begin{center}
+\includegraphics[width=0.49\linewidth]{bp_to_lp.pdf}
+\captionof{figure}{Spectra of explicit band-pass filters (top) and their equivalent low-pass filters (bottom). The dashed black line shows the sum of all the band-pass filters. \label{fig:bp_to_lp}}
+\end{center}
+
+
+\subsection{Scale-dependent localization}
+The standard scale-dependent localization (SDL) described in \citet{buehner_2015b} can be seen as a special case of filter banks localization (FBL), where:
 \begin{itemize}
 \item All the components have the same grid size $\widehat{n}_p = n$, so the size of the transformed space is $\widehat{n} = Pn$.
 \item There is no interpolation: $\mathbf{S}_p = \mathbf{I}_n$
 \end{itemize}
-Many implementations are possible for the low-pass filter $\mathbf{G}_p$. In the original paper, it is defined in spectral space:
-\begin{align}
-\mathbf{G}_p = \mathbf{T}^{-1} \mathbf{D}_p \mathbf{T}
-\end{align}
-where:
+Many implementations are possible in this case:
 \begin{itemize}
-\item $\mathbf{T}$ is a spectral transform.
-\item $\mathbf{D}_p$ is the diagonal analytical filter defining waveband $p$.
+\item Explicit band-pass filters $\mathbf{H}_p$ in spectral space: $\mathbf{H}_p = \mathbf{T}^{-1} \mathbf{D}_p \mathbf{T}$ where $\mathbf{T}$ is a spectral transform and $\mathbf{D}_p$ is the diagonal analytical filter defining waveband $p$.
+\item Explicit low-pass filters $\mathbf{G}_p$ based on a diffusion process using increasing diffusion length-scales.
 \end{itemize}
 
-\section{Interpolation-based filter banks localization}
+\subsection{Interpolation-based filter banks localization}
 The interpolation-based filter banks localization (IFBL) is a special case of the filter banks localization (FBL) where the low-pass filter $\mathbf{G}_p$ for component $p$ is given by:
 \begin{align}
 \mathbf{G}_p = \mathbf{N}_p \mathbf{S}_p^\mathrm{T}
 \end{align}
 where the i$^\text{th}$ coefficient of the diagonal normalization matrix $\mathbf{N}_p$ is equal to the inverse of the i$^\text{th}$ coefficient of the vector $\mathbf{S}_p^\mathrm{T} \mathbf{1}_n$.
 
-\section{Methods comparison}
-
+\subsection{Methods comparison}
 To illustrate the similarities and differences between the SDL and IFBL methods, we start from a random field $\mathbf{x}$ with different scales depending on the location in Figure \ref{fig:init}. In Figure \ref{fig:filt_1}, the filtered field $\widehat{\mathbf{x}}_1$ at low resolution captures the largest scales of the signal. These scales are removed in the corresponding residual $\overline{\mathbf{x}}_1$, in Figure \ref{fig:res_1}. In Figure \ref{fig:filt_2}, the filtered field $\widehat{\mathbf{x}}_2$ at intermediate resolution captures the intermediate scales of the signal. Only the smallest scale are left in the final residual $\overline{\mathbf{x}}_2$, in Figure \ref{fig:res_2}.\\
 $  $\\
 Here, the SDL uses the \texttt{scipy.ndimage.gaussian\_filter} function of \texttt{Python} for $\mathbf{G}_p$. The IFBL uses a standard bilinear interpolation. The filtering scales of the SDL and the low-resolution grids of the IFBL have been briefly tuned to yield visually similar results.
