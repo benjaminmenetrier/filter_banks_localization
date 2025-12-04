@@ -86,7 +86,9 @@ Copyright \copyright 2025: Meteorologisk Institutt
 
 %\tableofcontents
 
-\section{Standard EnVar formulation}
+\section{EnVar formulation}
+
+\subsection{Standard EnVar formulation}
 For an ensemble $N$ backgrounds $\left\{\mathbf{x}^1,\dots,\mathbf{x}^N\right\}$, with $\mathbf{x}^k \in \mathbb{R}^n$, the standard EnVar formulation is given by:
 \begin{align}
 \label{eq:envar}
@@ -117,7 +119,7 @@ where:
 \item $\mathbf{v}_j \in \mathbb{R}^{m/N}$ is the j$^\text{th}$ subvector of $\mathbf{v}$.
 \end{itemize}
 
-\section{Generalized EnVar formulation}
+\subsection{Generalized EnVar formulation}
 The standard EnVar formulation can be generalized by introducing two linear transforms $\mathbf{F} \in \mathbb{R}^{n \times \widehat{n}}$ and $\mathbf{F}^\dag \in \mathbb{R}^{\widehat{n} \times n}$:
 \begin{align}
 \widehat{\mathbf{B}} & = \mathbf{F} \left(\left(\mathbf{F}^\dag \mathbf{X}\right) \left(\mathbf{F}^\dag \mathbf{X}\right)^\mathrm{T} \circ \widehat{\mathbf{L}}\right) \mathbf{F}^\mathrm{T} \\
@@ -159,21 +161,48 @@ The content of $\mathbf{F}$ and $\mathbf{F}^\dag$ can be very diverse:
 \end{itemize}
 
 \section{Filter banks localization}
-In the filter banks localization (FBL) framework, we define three series of linear transforms:
-\begin{itemize}
-\item The low-pass filters $\left\{\mathbf{G}_1,\dots,\mathbf{G}_{P-1}\right\}$, where $\mathbf{G}_p \in \mathbb{R}^{\widehat{n}_p \times n}$.
-\item The band-pass filters $\left\{\mathbf{H}_1,\dots,\mathbf{H}_P\right\}$, where $\mathbf{H}_p \in \mathbb{R}^{\widehat{n}_p \times n}$.
-\item The interpolators $\left\{\mathbf{S}_1,\dots,\mathbf{S}_{P-1}\right\}$, where $\mathbf{S}_p \in \mathbb{R}^{n \times \widehat{n}_p}$.
-\end{itemize}
-where $\widehat{n}_p$ is the filtered space size at iteration $p$, with $\widehat{n}_P = n$.
 
-\subsection{From explicit low-pass filters}
-If the low-pass filters $\mathbf{G}_p$ are explicitly provided, the components of $\mathbf{F}^\dag$ are built recursively:
+\subsection{The band-pass framework}
+We define two series of $P$ linear transforms:
+\begin{itemize}
+\item the band-pass filters $\left\{\mathbf{H}_1,\dots,\mathbf{H}_P\right\}$, where $\mathbf{H}_p \in \mathbb{R}^{\widehat{n}_p \times n}$,
+\item the interpolators $\left\{\mathbf{S}_1,\dots,\mathbf{S}_P\right\}$, where $\mathbf{S}_p \in \mathbb{R}^{n \times \widehat{n}_p}$,
+\end{itemize}
+where $\widehat{n}_p$ is the space size of component $p$, and $\displaystyle \widehat{n} = \sum_{p=1}^P n_p$ is the total size.\\
+$  $\\
+Formally, the linear transform $\mathbf{F}^\dag$ is defined as
+\begin{align}
+\mathbf{F}^\dag = \left( \begin{array}{c}
+\mathbf{H}_1 \\
+\mathbf{H}_2 \\
+\vdots \\
+\mathbf{H}_P
+\end{array}
+\right)
+\end{align}
+and its left-inverse as:
+\begin{align}
+\mathbf{F} = \left(\mathbf{S}_1 \mathbf{S}_2 \dots \mathbf{S}_{P}\right)
+\end{align}
+For $1 \le p \le P-1$, the band-pass filters $\mathbf{H}_p$ are defined freely, but to ensure that $\mathbf{F} \mathbf{F}^\dag = \mathbf{I}_n$, the last band-pass filter $\mathbf{H}_P$ is defined as the complement of the sum of all the previous band-pass filters interpolated at full resolution:
+\begin{align}
+\label{eq:bp1}
+\mathbf{H}_P = \mathbf{I}_n - \sum_{p=1}^{P-1} \mathbf{S}_p \mathbf{H}_p
+\end{align}
+We also define the filtered components $\widehat{\mathbf{x}}_p \in \mathbb{R}^{\widehat{n}_p}$ as:
+\begin{align}
+\label{eq:bp2}
+\widehat{\mathbf{x}}_p = \mathbf{H}_p \mathbf{x}
+\end{align}
+where $\mathbf{x}$ is the input vector.
+
+\subsection{Recursive construction}
+In this section, we build the band-pass filters $\mathbf{H}_p$ recursively from a series of $P-1$ filters $\left\{\mathbf{G}_1,\dots,\mathbf{G}_{P-1}\right\}$, where $\mathbf{G}_p \in \mathbb{R}^{\widehat{n}_p \times n}$:
 \begin{itemize}
 \item The initial residual is given by the input state: $\overline{\mathbf{x}}_0 = \mathbf{x}$
 \item At each iteration $1 \le p \le P-1$:
 \begin{itemize}
-\item The low-pass filter $\mathbf{G}_p$ is applied to the previous residual $\overline{\mathbf{x}}_{p-1} \in \mathbb{R}^n$ to produce the new filtered component $\widehat{\mathbf{x}}_p \in \mathbb{R}^{\widehat{n}_p}$:
+\item The filter $\mathbf{G}_p$ is applied to the previous residual $\overline{\mathbf{x}}_{p-1} \in \mathbb{R}^n$ to produce the new filtered component $\widehat{\mathbf{x}}_p \in \mathbb{R}^{\widehat{n}_p}$:
 \begin{align}
 \label{eq:lp1}
 \widehat{\mathbf{x}}_p = \mathbf{G}_p \overline{\mathbf{x}}_{p-1}
@@ -239,86 +268,62 @@ and from \eqref{eq:lp1}, we obtain the filtered component at iteration $p$:
 \widehat{\mathbf{x}}_p & = \mathbf{G}_p \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{S}_q \mathbf{G}_q\right) \mathbf{x}
 \end{align}
 
-By definition, the band-pass filter $\mathbf{H}_p$ applied directly to the input state $\mathbf{x}$ should provide the filtered component $\widehat{\mathbf{x}}_p$:
-\begin{align}
-\mathbf{H}_p \mathbf{x} = \widehat{\mathbf{x}}_p
-\end{align}
-Combining this equation with \eqref{eq:lp4}, we get an equivalence between low-pass and band-pass filters for $1 \le p \le P-1$:
+Combining equations \eqref{eq:bp2} with \eqref{eq:lp4}, we get an equivalence between $\mathbf{H}_p$ and $\mathbf{G}_p$ for $1 \le p \le P-1$:
 \begin{align}
 \mathbf{H}_p = \mathbf{G}_p \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{S}_q \mathbf{G}_q\right)
 \end{align}
-The last band-pass filter $\mathbf{H}_P$ applied to the input state should produce the last residual:
+The last filtered component $\widehat{\mathbf{x}}_P$ is actually given by the last residual $\overline{\mathbf{x}}_{P-1}$
 \begin{align}
-\mathbf{H}_P \mathbf{x} & = \overline{\mathbf{x}}_{P-1}
+\widehat{\mathbf{x}}_P = \mathbf{H}_P \mathbf{x} = \overline{\mathbf{x}}_{P-1}
 \end{align}
-So equation \eqref{eq:lp3} gives:
+So equation \eqref{eq:lp3} gives another expression of equation \eqref{eq:bp1}:
 \begin{align}
 \mathbf{H}_P = \prod_{q=1}^{P-1} \left(\mathbf{I}_n - \mathbf{S}_q \mathbf{G}_q\right)
 \end{align}
-But integrating equation \eqref{eq:lp2} recursively, the last residual can also be expressed as:
+
+\subsection{Low-pass and high-pass filters}
+The filters $\mathbf{G}_p$ can be:
+\begin{itemize}
+\item either low-pass filters, with $\widehat{n}_p$ increasing up to $\widehat{n}_P = n$,
+\item or high-pass filters, with $\widehat{n}_p$ decreasing from $\widehat{n}_1 = n$.
+\end{itemize}
+
+Often in practice, only low-pass filters are actually implemented, through a diffusion process or an equivalent smoother. However, the high-pass filter $\mathbf{G}^h_p$ can be built as the complement of the low-pass filter $\mathbf{G}^l_p$:
 \begin{align}
-\overline{\mathbf{x}}_{P-1} & = \mathbf{x} - \sum_{p=1}^{P-1} \mathbf{S}_p \widehat{\mathbf{x}}_p \nonumber \\
- & = \mathbf{x} - \sum_{p=1}^{P-1} \mathbf{S}_p \mathbf{H}_p \mathbf{x}
+\mathbf{G}^h_p = \mathbf{I}_n - \mathbf{G}^l_p
 \end{align}
-Which proves that the last band-pass filter is actually the complement of the sum of all the previous band-pass filters combined with the corresponding interpolations:
-\begin{align}
-\mathbf{H}_P = \mathbf{I}_n - \sum_{p=1}^{P-1} \mathbf{S}_p \mathbf{H}_p
-\end{align}
-Figure \ref{fig:lp_to_bp} shows an example of spectra for explicit low-pass filters with Gaussian shapes, resulting for instance from a diffusion process, and their equivalent band-pass filters.\\
+But we should notice that in this case:
+\begin{itemize}
+\item All the components must have the same grid size $\widehat{n}_p = n$, so the size of the transformed space is $\widehat{n} = Pn$.
+\item It is not possible to benefit from interpolations: $\mathbf{S}_p = \mathbf{I}_n$
+\end{itemize}
+
+Figure \ref{fig:filters_equivalence} shows an example of spectra for explicit low-pass filters with Gaussian shapes, similar to the ones resulting from a diffusion process, and their complementary high-pass filters counterparts. The equivalent band-pass filters are also displayed in both cases. We can see that the band-pass filters have roughly the same structure in both cases, but are not identical.\\
 \begin{center}
-\includegraphics[width=0.49\linewidth]{lp_to_bp.pdf}
-\captionof{figure}{Spectra of explicit low-pass filters (top) and their equivalent band-pass filters (bottom). The dashed black line shows the sum of all the band-pass filters. \label{fig:lp_to_bp}}
+\includegraphics[width=\linewidth]{filters_equivalence.pdf}
+\captionof{figure}{Spectra of explicit low-pass filters (top left) and their complementary high-pass filters counterparts (top right). The equivalent band-pass filters are displayed for both cases in the bottom panels, the dashed black line indicating the sum of all the band-pass filters. \label{fig:filters_equivalence}}
 \end{center}
 
-Formally, the linear transform $\mathbf{F}^\dag$ can be written as:
-\begin{align}
-\mathbf{F}^\dag = \left( \begin{array}{c}
-\mathbf{H}_1 \\
-\mathbf{H}_2 \\
-\vdots \\
-\mathbf{H}_P
-\end{array}
-\right)
-\end{align}
-where the total size of the transformed space is $\displaystyle \widehat{n} = \sum_{p=1}^P n_p$. The left-inverse of $\mathbf{F}^\dag$ is simply:
-\begin{align}
-\mathbf{F} = \left(\mathbf{S}_1 \mathbf{S}_2 \dots \mathbf{S}_{P-1} \mathbf{I}_n\right)
-\end{align}
+\subsection{Application}
 
-\subsection{From explicit band-pass filters}
-Starting from explicit band-pass filters $\mathbf{H}_p$, it is easier to construct the linear transform $\mathbf{F}^\dag$. It is also possible to retrieve the corresponding low-pass filters iteratively:
+The standard scale-dependent localization (SDL) described in \citet{buehner_2015b} is a case where the band-pass filters are:
 \begin{itemize}
-\item The initial low-pass filter is equal to the initial band-pass filter:
-\begin{align}
-\mathbf{G}_1 = \mathbf{H}_1
-\end{align}
-\item For $2 \le p \le P-1$, the low-pass filter $\mathbf{G}_p$ is given by:
-\begin{align}
-\mathbf{G}_p & = \mathbf{H}_p \left(\mathbf{I}_n - \mathbf{S}_1 \mathbf{G}_1\right)^\dag \left(\mathbf{I}_n - \mathbf{S}_2 \mathbf{G}_2\right)^\dag \dots \left(\mathbf{I}_n - \mathbf{S}_{p-1} \mathbf{G}_{p-1}\right)^\dag \nonumber \\
-& = \mathbf{H}_p \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{S}_{p-q} \mathbf{G}_{p-q}\right)^\dag
-\end{align}
+\item either defined explicitely in spectral space, in a "wavelet-like" fashion,
+\item or built recursively from high-pass filters, themselves implemented as complements of diffusion-based low-pass filters.
 \end{itemize}
-where $\left(\mathbf{I}_n - \mathbf{S}_p \mathbf{G}_p\right)^\dag$ is a right-inverse of $\left(\mathbf{I}_n - \mathbf{S}_p \mathbf{G}_p\right)$. Figure \ref{fig:bp_to_lp} shows an example of spectra for explicit band-pass filters with wavelet-like shapes, and their equivalent low-pass filters.\\
-\begin{center}
-\includegraphics[width=0.49\linewidth]{bp_to_lp.pdf}
-\captionof{figure}{Spectra of explicit band-pass filters (top) and their equivalent low-pass filters (bottom). The dashed black line shows the sum of all the band-pass filters. \label{fig:bp_to_lp}}
-\end{center}
+$  $\\
+To be continued...
+
+% Bibliography
+\bibliographystyle{mybib-en}
+\bibliography{filter_banks_localization}
+\end{document}
 
 
-\subsection{Scale-dependent localization}
-The standard scale-dependent localization (SDL) described in \citet{buehner_2015b} can be seen as a special case of filter banks localization (FBL), where:
-\begin{itemize}
-\item All the components have the same grid size $\widehat{n}_p = n$, so the size of the transformed space is $\widehat{n} = Pn$.
-\item There is no interpolation: $\mathbf{S}_p = \mathbf{I}_n$
-\end{itemize}
-Many implementations are possible in this case:
-\begin{itemize}
-\item Explicit band-pass filters $\mathbf{H}_p$ in spectral space: $\mathbf{H}_p = \mathbf{T}^{-1} \mathbf{D}_p \mathbf{T}$ where $\mathbf{T}$ is a spectral transform and $\mathbf{D}_p$ is the diagonal analytical filter defining waveband $p$.
-\item Explicit low-pass filters $\mathbf{G}_p$ based on a diffusion process using increasing diffusion length-scales.
-\end{itemize}
 
-\subsection{Interpolation-based filter banks localization}
-The interpolation-based filter banks localization (IFBL) is a special case of the filter banks localization (FBL) where the low-pass filter $\mathbf{G}_p$ for component $p$ is given by:
+\end{document}
+
+The interpolation-based filter banks localization (ILPFL) is a special case of a construction with filter banks localization (FBL) where the low-pass filter $\mathbf{G}_p$ for component $p$ is given by:
 \begin{align}
 \mathbf{G}_p = \mathbf{N}_p \mathbf{S}_p^\mathrm{T}
 \end{align}
