@@ -96,94 +96,47 @@ mask = mask**3
 init = mask*init1+(1.0-mask)*init2
 init = init-np.mean(init)
 
-# Get min/max values
-vmax = np.max(np.abs(init))
-vmin = -vmax
-levels = np.linspace(vmin, vmax, 31)
-levels_lines = np.linspace(vmin, vmax, 16)
-cmap = "coolwarm"
+# SDL HP - band 1
+sdl_hp_filt_1 = gaussian_filter(init, sigma=1.3)
+sdl_hp_band_1 = np.zeros((nx, ny))
+sdl_hp_band_1[:,:] = init[:,:]-sdl_hp_filt_1[:,:]
 
-# Plot initial field
-fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
-ax.set_title('Initial field (' + str(nx) + ' x ' + str(ny) + ')', fontsize=18)
-ax.contourf(x, y, np.transpose(init), levels=levels, cmap=cmap)
-ax.contour(x, y, np.transpose(init), levels=levels_lines, colors='k', linewidths=0.5)
-plt.xticks([], [])
-plt.yticks([], [])
-plt.savefig('init.pdf', format='pdf', dpi=300)
-plt.close()
-os.system('pdfcrop init.pdf init.pdf')
+# SDL HP - band 2 and 3
+sdl_hp_band_3 = gaussian_filter(sdl_hp_filt_1, sigma=6)
+sdl_hp_band_2 = np.zeros((nx, ny))
+sdl_hp_band_2 = sdl_hp_filt_1[:,:]-sdl_hp_band_3[:,:]
 
-# SDL - filter 1
-sdl_filt_1 = gaussian_filter(init, sigma=6)
-sdl_res_1 = np.zeros((nx,ny))
-sdl_res_1[:,:] = init[:,:]-sdl_filt_1[:,:]
+# SDL HP - reconstructed
+sdl_hp_rec = np.zeros((nx, ny))
+sdl_hp_rec += sdl_hp_band_1
+sdl_hp_rec += sdl_hp_band_2
+sdl_hp_rec += sdl_hp_band_3
 
-# SDL - filter 2
-sdl_filt_2 = gaussian_filter(sdl_res_1, sigma=1.3)
-sdl_res_2 = np.zeros((nx,ny))
-sdl_res_2[:,:] = sdl_res_1[:,:]-sdl_filt_2[:,:]
+# SDL LP - band 1
+sdl_lp_band_1 = gaussian_filter(init, sigma=6)
 
-# SDL - reconstructed
-sdl_rec = np.zeros((nx, ny))
-sdl_rec += sdl_res_2
-sdl_rec += sdl_filt_2
-sdl_rec += sdl_filt_1
+# SDL LP - band 2
+sdl_lp_res_1 = np.zeros((nx,ny))
+sdl_lp_res_1[:,:] = init[:,:]-sdl_lp_band_1[:,:]
+sdl_lp_band_2 = gaussian_filter(sdl_lp_res_1, sigma=1.3)
 
-# Plot filtered field 1
-fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
-ax.set_title('SDL - Filtered field 1 (' + str(nx) + ' x ' + str(ny) + ')', fontsize=18)
-ax.contourf(x, y, np.transpose(sdl_filt_1), levels=levels, cmap=cmap)
-ax.contour(x, y, np.transpose(sdl_filt_1), levels=levels_lines, colors='k', linewidths=0.5)
-plt.xticks([], [])
-plt.yticks([], [])
-plt.savefig('sdl_1_filt.pdf', format='pdf', dpi=300)
-plt.close()
-os.system('pdfcrop sdl_1_filt.pdf sdl_1_filt.pdf')
+# SDL LP - band 3
+sdl_lp_band_3 = np.zeros((nx,ny))
+sdl_lp_band_3[:,:] = sdl_lp_res_1[:,:]-sdl_lp_band_2[:,:]
 
-# Plot residual field 1
-fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
-ax.set_title('SDL - Residual field 1 (' + str(nx) + ' x ' + str(ny) + ')', fontsize=18)
-ax.contourf(x, y, np.transpose(sdl_res_1), levels=levels, cmap=cmap)
-ax.contour(x, y, np.transpose(sdl_res_1), levels=levels_lines, colors='k', linewidths=0.5)
-plt.xticks([], [])
-plt.yticks([], [])
-plt.savefig('sdl_1_res.pdf', format='pdf', dpi=300)
-plt.close()
-os.system('pdfcrop sdl_1_res.pdf sdl_1_res.pdf')
+# SDL LP - reconstructed
+sdl_lp_rec = np.zeros((nx, ny))
+sdl_lp_rec += sdl_lp_band_1
+sdl_lp_rec += sdl_lp_band_2
+sdl_lp_rec += sdl_lp_band_3
 
-# Plot filtered field 2
-fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
-ax.set_title('SDL - Filtered field 2 (' + str(nx) + ' x ' + str(ny) + ')', fontsize=18)
-ax.contourf(x, y, np.transpose(sdl_filt_2), levels=levels, cmap=cmap)
-ax.contour(x, y, np.transpose(sdl_filt_2), levels=levels_lines, colors='k', linewidths=0.5)
-plt.xticks([], [])
-plt.yticks([], [])
-plt.savefig('sdl_2_filt.pdf', format='pdf', dpi=300)
-plt.close()
-os.system('pdfcrop sdl_2_filt.pdf sdl_2_filt.pdf')
-
-# Plot residual field 2
-fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
-ax.set_title('SDL - Residual field 2 (' + str(nx) + ' x ' + str(ny) + ')', fontsize=18)
-ax.contourf(x, y, np.transpose(sdl_res_2), levels=levels, cmap=cmap)
-ax.contour(x, y, np.transpose(sdl_res_2), levels=levels_lines, colors='k', linewidths=0.5)
-plt.xticks([], [])
-plt.yticks([], [])
-plt.savefig('sdl_2_res.pdf', format='pdf', dpi=300)
-plt.close()
-os.system('pdfcrop sdl_2_res.pdf sdl_2_res.pdf')
-
-# Plot reconstructed field
-fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
-ax.set_title('SDL - Reconstructed field (' + str(nx) + ' x ' + str(ny) + ')', fontsize=18)
-ax.contourf(x, y, np.transpose(sdl_rec), levels=levels, cmap=cmap)
-ax.contour(x, y, np.transpose(sdl_rec), levels=levels_lines, colors='k', linewidths=0.5)
-plt.xticks([], [])
-plt.yticks([], [])
-plt.savefig('sdl_rec.pdf', format='pdf', dpi=300)
-plt.close()
-os.system('pdfcrop sdl_rec.pdf sdl_rec.pdf')
+# SDL difference
+sdl_diff_large = sdl_lp_band_1-sdl_hp_band_3
+sdl_diff_inter = sdl_lp_band_2-sdl_hp_band_2
+sdl_diff_small = sdl_lp_band_3-sdl_hp_band_1
+print(np.max(np.abs(sdl_diff_large)))
+print(np.max(np.abs(sdl_diff_inter)))
+print(np.max(np.abs(sdl_diff_small)))
 
 # IFBL - interpolator 1
 nx1 = 15
@@ -204,14 +157,14 @@ if np.abs(np.sum(rnd*S_rnd1)-np.sum(rnd1*ST_rnd)) > 1.0e-12:
   print("Adjoint test error")
   exit()
 
-# IFBL - filter 1
+# IFBL - band 1
 ones = np.ones((nx, ny))
 norm1 = np.zeros((nx1, ny1))
 apply_interp_ad(interp1x, interp1y, ones, norm1)
 norm1 = 1.0/norm1
-ifbl_filt_1 = np.zeros((nx1, ny1))
+ifbl_band_1 = np.zeros((nx1, ny1))
 ifbl_res_1 = np.zeros((nx, ny))
-apply_filter(interp1x, interp1y, norm1, init, ifbl_filt_1, ifbl_res_1)
+apply_filter(interp1x, interp1y, norm1, init, ifbl_band_1, ifbl_res_1)
 
 # IFBL - interpolator 2
 nx2 = nx1*4
@@ -221,67 +174,195 @@ y2 = np.linspace(0.0, 1.0, ny2)
 interp2x = create_interp(x, x2)
 interp2y = create_interp(y, y2)
 
-# IFBL - filter 2
+# IFBL - band 2 and 3
 ones = np.ones((nx, ny))
 norm2 = np.zeros((nx2, ny2))
 apply_interp_ad(interp2x, interp2y, ones, norm2)
 norm2 = 1.0/norm2
-ifbl_filt_2 = np.zeros((nx2, ny2))
-ifbl_res_2 = np.zeros((nx, ny))
-apply_filter(interp2x, interp2y, norm2, ifbl_res_1, ifbl_filt_2, ifbl_res_2)
+ifbl_band_2 = np.zeros((nx2, ny2))
+ifbl_band_3 = np.zeros((nx, ny))
+apply_filter(interp2x, interp2y, norm2, ifbl_res_1, ifbl_band_2, ifbl_band_3)
 
 # IFBL - reconstructed
 ifbl_rec = np.zeros((nx, ny))
-ifbl_rec += ifbl_res_2
-ifbl_filt_interp = np.zeros((nx, ny))
-apply_interp(interp2x, interp2y, ifbl_filt_2, ifbl_filt_interp)
-ifbl_rec += ifbl_filt_interp
-apply_interp(interp1x, interp1y, ifbl_filt_1, ifbl_filt_interp)
-ifbl_rec += ifbl_filt_interp
+ifbl_band_interp = np.zeros((nx, ny))
+apply_interp(interp1x, interp1y, ifbl_band_1, ifbl_band_interp)
+ifbl_rec += ifbl_band_interp
+apply_interp(interp2x, interp2y, ifbl_band_2, ifbl_band_interp)
+ifbl_rec += ifbl_band_interp
+ifbl_rec += ifbl_band_3
 
-# Plot filtered field 1
+# Get min/max values
+vmax = np.max(np.abs(init))
+vmin = -vmax
+levels = np.linspace(vmin, vmax, 31)
+levels_lines = np.linspace(vmin, vmax, 16)
+cmap = "coolwarm"
+
+# Plot initial field
 fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
-ax.set_title('IFBL - Filtered field 1 (' + str(nx1) + ' x ' + str(ny1) + ')', fontsize=18)
-ax.contourf(x1, y1, np.transpose(ifbl_filt_1), levels=levels, cmap=cmap)
-ax.contour(x1, y1, np.transpose(ifbl_filt_1), levels=levels_lines, colors='k', linewidths=0.5)
+ax.set_title('Initial field', fontsize=18)
+ax.contourf(x, y, np.transpose(init), levels=levels, cmap=cmap)
+ax.contour(x, y, np.transpose(init), levels=levels_lines, colors='k', linewidths=0.5)
 plt.xticks([], [])
 plt.yticks([], [])
-plt.savefig('ifbl_1_filt.pdf', format='pdf', dpi=300)
+plt.savefig('init.pdf', format='pdf', dpi=300)
 plt.close()
-os.system('pdfcrop ifbl_1_filt.pdf ifbl_1_filt.pdf')
+os.system('pdfcrop init.pdf init.pdf')
 
-# Plot residual field 1
+# Plot band 1
 fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
-ax.set_title('IFBL - Residual field 1 (' + str(nx) + ' x ' + str(ny) + ')', fontsize=18)
-ax.contourf(x, y, np.transpose(ifbl_res_1), levels=levels, cmap=cmap)
-ax.contour(x, y, np.transpose(ifbl_res_1), levels=levels_lines, colors='k', linewidths=0.5)
+ax.set_title('SDL HP - Band 1', fontsize=18)
+ax.contourf(x, y, np.transpose(sdl_hp_band_1), levels=levels, cmap=cmap)
+ax.contour(x, y, np.transpose(sdl_hp_band_1), levels=levels_lines, colors='k', linewidths=0.5)
 plt.xticks([], [])
 plt.yticks([], [])
-plt.savefig('ifbl_1_res.pdf', format='pdf', dpi=300)
+plt.savefig('sdl_hp_band_1.pdf', format='pdf', dpi=300)
 plt.close()
-os.system('pdfcrop ifbl_1_res.pdf ifbl_1_res.pdf')
+os.system('pdfcrop sdl_hp_band_1.pdf sdl_hp_band_1.pdf')
 
-# Plot filtered field 2
+# Plot band 2
 fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
-ax.set_title('IFBL - Filtered field 2 (' + str(nx2) + ' x ' + str(ny2) + ')', fontsize=18)
-ax.contourf(x2, y2, np.transpose(ifbl_filt_2), levels=levels, cmap=cmap)
-ax.contour(x2, y2, np.transpose(ifbl_filt_2), levels=levels_lines, colors='k', linewidths=0.5)
+ax.set_title('SDL HP - Band 2', fontsize=18)
+ax.contourf(x, y, np.transpose(sdl_hp_band_2), levels=levels, cmap=cmap)
+ax.contour(x, y, np.transpose(sdl_hp_band_2), levels=levels_lines, colors='k', linewidths=0.5)
 plt.xticks([], [])
 plt.yticks([], [])
-plt.savefig('ifbl_2_filt.pdf', format='pdf', dpi=300)
+plt.savefig('sdl_hp_band_2.pdf', format='pdf', dpi=300)
 plt.close()
-os.system('pdfcrop ifbl_2_filt.pdf ifbl_2_filt.pdf')
+os.system('pdfcrop sdl_hp_band_2.pdf sdl_hp_band_2.pdf')
 
-# Plot residual field 2
+# Plot band 3
 fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
-ax.set_title('IFBL - Residual field 2 (' + str(nx) + ' x ' + str(ny) + ')', fontsize=18)
-ax.contourf(x, y, np.transpose(ifbl_res_2), levels=levels, cmap=cmap)
-ax.contour(x, y, np.transpose(ifbl_res_2), levels=levels_lines, colors='k', linewidths=0.5)
+ax.set_title('SDL HP - Band 3', fontsize=18)
+ax.contourf(x, y, np.transpose(sdl_hp_band_3), levels=levels, cmap=cmap)
+ax.contour(x, y, np.transpose(sdl_hp_band_3), levels=levels_lines, colors='k', linewidths=0.5)
 plt.xticks([], [])
 plt.yticks([], [])
-plt.savefig('ifbl_2_res.pdf', format='pdf', dpi=300)
+plt.savefig('sdl_hp_band_3.pdf', format='pdf', dpi=300)
 plt.close()
-os.system('pdfcrop ifbl_2_res.pdf ifbl_2_res.pdf')
+os.system('pdfcrop sdl_hp_band_3.pdf sdl_hp_band_3.pdf')
+
+# Plot reconstructed field
+fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
+ax.set_title('SDL HP - Reconstructed field', fontsize=18)
+ax.contourf(x, y, np.transpose(sdl_hp_rec), levels=levels, cmap=cmap)
+ax.contour(x, y, np.transpose(sdl_hp_rec), levels=levels_lines, colors='k', linewidths=0.5)
+plt.xticks([], [])
+plt.yticks([], [])
+plt.savefig('sdl_hp_rec.pdf', format='pdf', dpi=300)
+plt.close()
+os.system('pdfcrop sdl_hp_rec.pdf sdl_hp_rec.pdf')
+
+# Plot band 1
+fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
+ax.set_title('SDL LP - Band 1', fontsize=18)
+ax.contourf(x, y, np.transpose(sdl_lp_band_1), levels=levels, cmap=cmap)
+ax.contour(x, y, np.transpose(sdl_lp_band_1), levels=levels_lines, colors='k', linewidths=0.5)
+plt.xticks([], [])
+plt.yticks([], [])
+plt.savefig('sdl_lp_band_1.pdf', format='pdf', dpi=300)
+plt.close()
+os.system('pdfcrop sdl_lp_band_1.pdf sdl_lp_band_1.pdf')
+
+# Plot band 2
+fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
+ax.set_title('SDL LP - Band 2', fontsize=18)
+ax.contourf(x, y, np.transpose(sdl_lp_band_2), levels=levels, cmap=cmap)
+ax.contour(x, y, np.transpose(sdl_lp_band_2), levels=levels_lines, colors='k', linewidths=0.5)
+plt.xticks([], [])
+plt.yticks([], [])
+plt.savefig('sdl_lp_band_2.pdf', format='pdf', dpi=300)
+plt.close()
+os.system('pdfcrop sdl_lp_band_2.pdf sdl_lp_band_2.pdf')
+
+# Plot band 3
+fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
+ax.set_title('SDL LP - Band 3', fontsize=18)
+ax.contourf(x, y, np.transpose(sdl_lp_band_3), levels=levels, cmap=cmap)
+ax.contour(x, y, np.transpose(sdl_lp_band_3), levels=levels_lines, colors='k', linewidths=0.5)
+plt.xticks([], [])
+plt.yticks([], [])
+plt.savefig('sdl_lp_band_3.pdf', format='pdf', dpi=300)
+plt.close()
+os.system('pdfcrop sdl_lp_band_3.pdf sdl_lp_band_3.pdf')
+
+# Plot reconstructed field
+fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
+ax.set_title('SDL LP - Reconstructed field', fontsize=18)
+ax.contourf(x, y, np.transpose(sdl_lp_rec), levels=levels, cmap=cmap)
+ax.contour(x, y, np.transpose(sdl_lp_rec), levels=levels_lines, colors='k', linewidths=0.5)
+plt.xticks([], [])
+plt.yticks([], [])
+plt.savefig('sdl_lp_rec.pdf', format='pdf', dpi=300)
+plt.close()
+os.system('pdfcrop sdl_lp_rec.pdf sdl_lp_rec.pdf')
+
+# Plot large scale difference
+fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
+ax.set_title('SDL LP 1 - SDL HP 3', fontsize=18)
+ax.contourf(x, y, np.transpose(sdl_diff_large), levels=levels, cmap=cmap)
+ax.contour(x, y, np.transpose(sdl_diff_large), levels=levels_lines, colors='k', linewidths=0.5)
+plt.xticks([], [])
+plt.yticks([], [])
+plt.savefig('sdl_diff_large.pdf', format='pdf', dpi=300)
+plt.close()
+os.system('pdfcrop sdl_diff_large.pdf sdl_diff_large.pdf')
+
+# Plot intermediate scale difference
+fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
+ax.set_title('SDL LP 2 - SDL HP 2', fontsize=18)
+ax.contourf(x, y, np.transpose(sdl_diff_inter), levels=levels, cmap=cmap)
+ax.contour(x, y, np.transpose(sdl_diff_inter), levels=levels_lines, colors='k', linewidths=0.5)
+plt.xticks([], [])
+plt.yticks([], [])
+plt.savefig('sdl_diff_inter.pdf', format='pdf', dpi=300)
+plt.close()
+os.system('pdfcrop sdl_diff_inter.pdf sdl_diff_inter.pdf')
+
+# Plot small scale difference
+fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
+ax.set_title('SDL LP 3 - SDL HP 1', fontsize=18)
+ax.contourf(x, y, np.transpose(sdl_diff_small), levels=levels, cmap=cmap)
+ax.contour(x, y, np.transpose(sdl_diff_small), levels=levels_lines, colors='k', linewidths=0.5)
+plt.xticks([], [])
+plt.yticks([], [])
+plt.savefig('sdl_diff_small.pdf', format='pdf', dpi=300)
+plt.close()
+os.system('pdfcrop sdl_diff_small.pdf sdl_diff_small.pdf')
+exit()
+# Plot band 1
+fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
+ax.set_title('IFBL - Band 1 (' + str(nx1) + ' x ' + str(ny1) + ')', fontsize=18)
+ax.contourf(x1, y1, np.transpose(ifbl_band_1), levels=levels, cmap=cmap)
+ax.contour(x1, y1, np.transpose(ifbl_band_1), levels=levels_lines, colors='k', linewidths=0.5)
+plt.xticks([], [])
+plt.yticks([], [])
+plt.savefig('ifbl_band_1.pdf', format='pdf', dpi=300)
+plt.close()
+os.system('pdfcrop ifbl_band_1.pdf ifbl_band_1.pdf')
+
+# Plot band 2
+fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
+ax.set_title('IFBL - Band 2 (' + str(nx2) + ' x ' + str(ny2) + ')', fontsize=18)
+ax.contourf(x2, y2, np.transpose(ifbl_band_2), levels=levels, cmap=cmap)
+ax.contour(x2, y2, np.transpose(ifbl_band_2), levels=levels_lines, colors='k', linewidths=0.5)
+plt.xticks([], [])
+plt.yticks([], [])
+plt.savefig('ifbl_band_2.pdf', format='pdf', dpi=300)
+plt.close()
+os.system('pdfcrop ifbl_band_2.pdf ifbl_band_2.pdf')
+
+# Plot band 3
+fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
+ax.set_title('IFBL - Band 3 (' + str(nx) + ' x ' + str(ny) + ')', fontsize=18)
+ax.contourf(x, y, np.transpose(ifbl_band_3), levels=levels, cmap=cmap)
+ax.contour(x, y, np.transpose(ifbl_band_3), levels=levels_lines, colors='k', linewidths=0.5)
+plt.xticks([], [])
+plt.yticks([], [])
+plt.savefig('ifbl_band_3.pdf', format='pdf', dpi=300)
+plt.close()
+os.system('pdfcrop ifbl_band_3.pdf ifbl_band_3.pdf')
 
 # Plot reconstructed field
 fig,ax = plt.subplots(ncols=1, nrows=1,figsize=(7,5))
