@@ -6,66 +6,139 @@ import os
 
 # Parameters
 nsmax = 100
-nf = 5
+nf = 4
+colors = ["blue","orange","green","red"]
+#mode = "low"
+#mode = "high"
+#mode = "complementary"
+#mode = "embedded"
+mode = "pseudo-embedded"
+if mode == "embedded":
+  Lfactor = [0.1, 0.15, 0.2]
+else:
+  Lfactor = [0.1, 0.2, 0.4]
 
 # Wavenumbers
 wn = np.linspace(0, nsmax, nsmax+1)
 
-# Explicit filters
+# Gaspari-Cohn function
+def gc99(r):
+   if r<0.5:
+      value = 1.0-r
+      value = 1.0+8.0/5.0*r*value
+      value = 1.0-3.0/4.0*r*value
+      value = 1.0-20.0/3.0*r**2*value
+   else:
+      if r<1.0:
+         value = 1.0-r/3.0
+         value = 1.0-8.0/5.0*r*value
+         value = 1.0+3.0/4.0*r*value
+         value = 1.0-2.0/3.0*r*value
+         value = 1.0-5.0/2.0*r*value
+         value = 1.0-12.0*r*value
+         value = -value/(3.0*r)
+      else:
+        value = 0.0
+   return value
+
+# Filtering length-scales
+L = np.zeros((nf-1))
+for i in range(nf-1):
+  L[i] = Lfactor[i]*(i+1)*(nsmax+1)
+
+# Low-pass filters
 lpf = np.zeros((nsmax+1, nf-1))
+Lflat = 0.0
+for i in range(nf-1):
+  if (mode == "embedded") and i > 0:
+    for k in range(nsmax+1):
+      if k < Lflat:
+        lpf[k,i] = 1.0
+      else:
+        lpf[k,i] = gc99((k-Lflat)/L[i])
+  else:
+    for k in range(nsmax+1):
+      lpf[k,i] = gc99(k/L[i])
+  Lflat += L[i]
+
+# High-pass filters (sorted in opposite order)
 hpf = np.zeros((nsmax+1, nf-1))
 for i in range(nf-1):
-  L = 0.4*(i+1)*(nsmax+1)/nf
-  for k in range(nsmax+1):
-    lpf[k,i] = np.exp(-0.5*(k/L)**2)
-    hpf[k,i] = 1.0-lpf[k,i]
+  if mode == "high":
+    for k in range(nsmax+1):
+      hpf[k,i] = gc99((nsmax-k)/L[i])
+  elif mode == "complementary":
+    for k in range(nsmax+1):
+      hpf[k,i] = 1.0-lpf[k,nf-2-i]
 
 # Equivalent band-pass filters
 bpf_from_lpf = np.ones((nsmax+1, nf))
 bpf_from_hpf = np.ones((nsmax+1, nf))
 bpf_from_lpf[:,0] = lpf[:,0]
-bpf_from_hpf[:,nf-1] = hpf[:,nf-2]
+bpf_from_hpf[:,0] = hpf[:,0]
 for j in range(1,nf):
   bpf_from_lpf[:,j] *= (1.0-lpf[:,0])
-  bpf_from_hpf[:,nf-1-j] *= (1.0-hpf[:,nf-2])
+  bpf_from_hpf[:,j] *= (1.0-hpf[:,0])
 for i in range(1,nf-1):
   bpf_from_lpf[:,i] *= lpf[:,i]
-  bpf_from_hpf[:,nf-1-i] *= hpf[:,nf-2-i]
+  bpf_from_hpf[:,i] *= hpf[:,i]
   for j in range(i+1,nf):
     bpf_from_lpf[:,j] *= (1.0-lpf[:,i])
-    bpf_from_hpf[:,nf-1-j] *= (1.0-hpf[:,nf-2-i])
-bpf_from_lpf_sum = np.sum(bpf_from_lpf, axis=1)
-bpf_from_hpf_sum = np.sum(bpf_from_hpf, axis=1)
+    bpf_from_hpf[:,j] *= (1.0-hpf[:,i])
+if mode == "pseudo-embedded":
+  pe_bpf_from_lpf = np.zeros((nsmax+1, nf))
+  pe_bpf_from_lpf[:,0] = lpf[:,0]
+  for j in range(1,nf-1):
+    pe_bpf_from_lpf[:,j] = lpf[:,j]-lpf[:,j-1]
+  pe_bpf_from_lpf[:,nf-1] = 1.0-np.sum(pe_bpf_from_lpf[:,0:nf-1], axis=1)
 
 # Plot
-fig,ax = plt.subplots(ncols=2, nrows=2, figsize=(16,8))
-ax[0][0].plot(wn, lpf, linewidth=2.0)
-ax[0][0].set_title("Explicit low-pass filters", fontsize=18)
-ax[0][0].set_xlabel("Wavenumber", fontsize=14)
-ax[0][0].set_xlim(0, nsmax)
-ax[0][0].set_ylim(0, 1.1)
+fig,ax = plt.subplots(nrows=2, figsize=(6,6))
+ax[0].set_prop_cycle(color=colors[0:nf-1])
+if mode == "low":
+  ax[0].plot(wn, lpf, linewidth=2.0)
+  ax[0].set_title("Low-pass filters", fontsize=15)
+elif mode == "high":
+  ax[0].plot(wn, hpf, linewidth=2.0)
+  ax[0].set_title("High-pass filters", fontsize=15)
+elif mode == "complementary":
+  ax[0].plot(wn, lpf, linewidth=2.0)
+  ax[0].plot(wn, hpf[:,::-1], linewidth=2.0, linestyle="--")
+  ax[0].set_title("Low-pass and complementary high-pass filters", fontsize=15)
+elif mode == "embedded":
+  ax[0].plot(wn, lpf, linewidth=2.0)
+  ax[0].set_title("Embedded low-pass filters", fontsize=15)
+elif mode == "pseudo-embedded":
+  ax[0].plot(wn, lpf, linewidth=2.0)
+  ax[0].set_title("Non-embedded low-pass filters", fontsize=15)
+ax[0].set_xlabel("Wavenumber", fontsize=14)
+ax[0].set_xlim(0, nsmax)
+ax[0].set_ylim(0, 1.1)
 
-ax[0][1].plot(wn, hpf, linewidth=2.0)
-ax[0][1].set_title("Complementary high-pass filters", fontsize=18)
-ax[0][1].set_xlabel("Wavenumber", fontsize=14)
-ax[0][1].set_xlim(0, nsmax)
-ax[0][1].set_ylim(0, 1.1)
+ax[1].set_prop_cycle(color=colors)
+if mode == "low":
+  ax[1].plot(wn, bpf_from_lpf, linewidth=2.0)
+  ax[1].set_title("Corresponding band-pass filters", fontsize=15)
+elif mode == "high":
+  ax[1].plot(wn, bpf_from_hpf, linewidth=2.0)
+  ax[1].set_title("Corresponding band-pass filters", fontsize=15)
+elif mode == "complementary":
+  ax[1].plot(wn, bpf_from_lpf, linewidth=2.0)
+  ax[1].plot(wn, bpf_from_hpf[:,::-1], linewidth=2.0, linestyle="--")
+  ax[1].set_title("Corresponding band-pass filters", fontsize=15)
+elif mode == "embedded":
+  ax[1].plot(wn, bpf_from_lpf, linewidth=2.0)
+  ax[1].set_title("Corresponding band-pass filters", fontsize=15)
+elif mode == "pseudo-embedded":
+  ax[1].plot(wn, bpf_from_lpf, linewidth=2.0)
+  ax[1].plot(wn, pe_bpf_from_lpf, linewidth=2.0, linestyle="--")
+  ax[1].set_title("Corresponding recursive and parallel band-pass filters", fontsize=15)
+ax[1].set_xlabel("Wavenumber", fontsize=14)
+ax[1].set_xlim(0, nsmax)
+ax[1].set_ylim(0, 1.1)
 
-ax[1][0].plot(wn, bpf_from_lpf, linewidth=2.0)
-ax[1][0].plot(wn, bpf_from_lpf_sum, '--k', linewidth=2.0)
-ax[1][0].set_title("Equivalent band-pass filters, from low-pass filters", fontsize=18)
-ax[1][0].set_xlabel("Wavenumber", fontsize=14)
-ax[1][0].set_xlim(0, nsmax)
-ax[1][0].set_ylim(0, 1.1)
-
-ax[1][1].plot(wn, bpf_from_hpf, linewidth=2.0)
-ax[1][1].plot(wn, bpf_from_hpf_sum, '--k', linewidth=2.0)
-ax[1][1].set_title("Equivalent band-pass filters, from high-pass filters", fontsize=18)
-ax[1][1].set_xlabel("Wavenumber", fontsize=14)
-ax[1][1].set_xlim(0, nsmax)
-ax[1][1].set_ylim(0, 1.1)
-
-fig.tight_layout(pad=2.5)
-plt.savefig('filters_equivalence.pdf', format='pdf', dpi=300)
+fig.tight_layout(pad=1.0)
+filename = 'filters_equivalence_' + mode + '.pdf'
+plt.savefig(filename, format='pdf', dpi=300)
 plt.close()
-os.system('pdfcrop filters_equivalence.pdf filters_equivalence.pdf')
+os.system('pdfcrop ' + filename + ' ' + filename)
