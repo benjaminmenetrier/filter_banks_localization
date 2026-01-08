@@ -11,8 +11,8 @@ colors = ["blue","orange","green","red"]
 #mode = "low"
 #mode = "high"
 #mode = "complementary"
-mode = "embedded"
-#mode = "pseudo-embedded"
+#mode = "embedded"
+mode = "pseudo-embedded"
 if mode == "embedded":
   Lfactor = [0.1, 0.15, 0.2]
 else:
@@ -72,30 +72,25 @@ for i in range(nf-1):
       hpf[k,i] = 1.0-lpf[k,nf-2-i]
 
 # Equivalent band-pass filters
+bpf_from_lpf = np.ones((nsmax+1, nf))
+bpf_from_hpf = np.ones((nsmax+1, nf))
+bpf_from_lpf[:,0] = lpf[:,0]
+bpf_from_hpf[:,0] = hpf[:,0]
+for j in range(1,nf):
+  bpf_from_lpf[:,j] *= (1.0-lpf[:,0])
+  bpf_from_hpf[:,j] *= (1.0-hpf[:,0])
+for i in range(1,nf-1):
+  bpf_from_lpf[:,i] *= lpf[:,i]
+  bpf_from_hpf[:,i] *= hpf[:,i]
+  for j in range(i+1,nf):
+    bpf_from_lpf[:,j] *= (1.0-lpf[:,i])
+    bpf_from_hpf[:,j] *= (1.0-hpf[:,i])
 if mode == "pseudo-embedded":
-  bpf_from_lpf = np.zeros((nsmax+1, nf))
-  bpf_from_hpf = np.zeros((nsmax+1, nf))
-  bpf_from_lpf[:,0] = lpf[:,0]
-  bpf_from_hpf[:,0] = hpf[:,0]
+  pe_bpf_from_lpf = np.zeros((nsmax+1, nf))
+  pe_bpf_from_lpf[:,0] = lpf[:,0]
   for j in range(1,nf-1):
-    bpf_from_lpf[:,j] = lpf[:,j]-lpf[:,j-1]
-    bpf_from_hpf[:,j] = hpf[:,j]-hpf[:,j-1]
-  bpf_from_lpf[:,nf-1] = 1.0-np.sum(bpf_from_lpf[:,0:nf-1], axis=1)
-  bpf_from_hpf[:,nf-1] = 1.0-np.sum(bpf_from_hpf[:,0:nf-1], axis=1)
-else:
-  bpf_from_lpf = np.ones((nsmax+1, nf))
-  bpf_from_hpf = np.ones((nsmax+1, nf))
-  bpf_from_lpf[:,0] = lpf[:,0]
-  bpf_from_hpf[:,0] = hpf[:,0]
-  for j in range(1,nf):
-    bpf_from_lpf[:,j] *= (1.0-lpf[:,0])
-    bpf_from_hpf[:,j] *= (1.0-hpf[:,0])
-  for i in range(1,nf-1):
-    bpf_from_lpf[:,i] *= lpf[:,i]
-    bpf_from_hpf[:,i] *= hpf[:,i]
-    for j in range(i+1,nf):
-      bpf_from_lpf[:,j] *= (1.0-lpf[:,i])
-      bpf_from_hpf[:,j] *= (1.0-hpf[:,i])
+    pe_bpf_from_lpf[:,j] = lpf[:,j]-lpf[:,j-1]
+  pe_bpf_from_lpf[:,nf-1] = 1.0-np.sum(pe_bpf_from_lpf[:,0:nf-1], axis=1)
 
 # Plot
 fig,ax = plt.subplots(nrows=2, figsize=(6,6))
@@ -113,6 +108,9 @@ elif mode == "complementary":
 elif mode == "embedded":
   ax[0].plot(wn, lpf, linewidth=2.0)
   ax[0].set_title("Embedded low-pass filters", fontsize=15)
+elif mode == "pseudo-embedded":
+  ax[0].plot(wn, lpf, linewidth=2.0)
+  ax[0].set_title("Non-embedded low-pass filters", fontsize=15)
 ax[0].set_xlabel("Wavenumber", fontsize=14)
 ax[0].set_xlim(0, nsmax)
 ax[0].set_ylim(0, 1.1)
@@ -120,14 +118,21 @@ ax[0].set_ylim(0, 1.1)
 ax[1].set_prop_cycle(color=colors)
 if mode == "low":
   ax[1].plot(wn, bpf_from_lpf, linewidth=2.0)
+  ax[1].set_title("Corresponding band-pass filters", fontsize=15)
 elif mode == "high":
   ax[1].plot(wn, bpf_from_hpf, linewidth=2.0)
+  ax[1].set_title("Corresponding band-pass filters", fontsize=15)
 elif mode == "complementary":
   ax[1].plot(wn, bpf_from_lpf, linewidth=2.0)
   ax[1].plot(wn, bpf_from_hpf[:,::-1], linewidth=2.0, linestyle="--")
-if mode == "embedded":
+  ax[1].set_title("Corresponding band-pass filters", fontsize=15)
+elif mode == "embedded":
   ax[1].plot(wn, bpf_from_lpf, linewidth=2.0)
-ax[1].set_title("Corresponding band-pass filters", fontsize=15)
+  ax[1].set_title("Corresponding band-pass filters", fontsize=15)
+elif mode == "pseudo-embedded":
+  ax[1].plot(wn, bpf_from_lpf, linewidth=2.0)
+  ax[1].plot(wn, pe_bpf_from_lpf, linewidth=2.0, linestyle="--")
+  ax[1].set_title("Corresponding recursive and parallel band-pass filters", fontsize=15)
 ax[1].set_xlabel("Wavenumber", fontsize=14)
 ax[1].set_xlim(0, nsmax)
 ax[1].set_ylim(0, 1.1)

@@ -3,6 +3,7 @@
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
+\usepackage{mathtools}
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{amsbsy}
@@ -16,10 +17,8 @@
 \usepackage[english]{babel}
 \usepackage{color}
 \usepackage{url}
-\usepackage{fancybox}
 \usepackage[stable]{footmisc}
 \usepackage[format=plain,labelfont=bf]{caption}
-\usepackage{fancyhdr}
 \usepackage{natbib}
 \usepackage{calc}
 \usepackage{textcomp}
@@ -28,6 +27,7 @@
 \usepackage{tikz}
 \usetikzlibrary{shapes,backgrounds,fit,positioning,arrows,positioning,decorations.pathmorphing,decorations.pathreplacing,backgrounds}
 \usepackage{accents}
+\usepackage[section]{placeins}
 
 \renewcommand*{\familydefault}{\sfdefault}
 
@@ -84,7 +84,7 @@
 Copyright \copyright 2025: Meteorologisk Institutt
 \end{center}
 
-%\tableofcontents
+\tableofcontents
 
 \section{EnVar formulation}
 
@@ -160,7 +160,7 @@ The content of $\mathbf{F}$ and $\mathbf{F}^\dag$ can be very diverse:
 \end{align}
 \end{itemize}
 
-\section{Filter banks}
+\section{General filter banks}
 
 \subsection{The band-pass framework}
 We define a series of $P$ band-pass filters $\left\{\mathbf{H}_1,\dots,\mathbf{H}_P\right\}$, where $\mathbf{H}_p \in \mathbb{R}^{n \times n}$. The linear transform $\mathbf{F}^\dag$ is defined as:
@@ -173,7 +173,7 @@ We define a series of $P$ band-pass filters $\left\{\mathbf{H}_1,\dots,\mathbf{H
 \end{array}
 \right)
 \end{align}
-and its left-inverse as:
+and its left-inverse $\mathbf{F}$ as:
 \begin{align}
 \mathbf{F} = \left(\mathbf{I}_n \mathbf{I}_n \dots \mathbf{I}_n\right)
 \end{align}
@@ -181,7 +181,7 @@ Thus, $\mathbf{F} \mathbf{F}^\dag$ is the sum of the band-pass filters:
 \begin{align}
 \mathbf{F} \mathbf{F}^\dag = \sum_{p=1}^P \mathbf{H}_p
 \end{align}
-and the size of the decomposition space (i.e. the number of rows of $\mathbf{F}^\dag$) is $\widehat{n} = Pn$. For $1 \le p \le P-1$, the band-pass filters $\mathbf{H}_p$ are defined without constraint. However, to ensure that $\mathbf{F} \mathbf{F}^\dag = \mathbf{I}_n$, the last band-pass filter $\mathbf{H}_P$ is defined as the complement of the sum of all the previous band-pass filters:
+and the size of the decomposition space (i.e. the number of rows of $\mathbf{F}^\dag$) is $\widehat{n} = Pn$. For $1 \le p \le P-1$, the band-pass filters $\mathbf{H}_p$ are defined independently. However, to ensure that $\mathbf{F} \mathbf{F}^\dag = \mathbf{I}_n$, the last band-pass filter $\mathbf{H}_P$ is defined as the complement of the sum of all the previous band-pass filters:
 \begin{align}
 \label{eq:bp1}
 \mathbf{H}_P = \mathbf{I}_n - \sum_{p=1}^{P-1} \mathbf{H}_p
@@ -207,14 +207,207 @@ In this section, we build the band-pass filters $\mathbf{H}_p$ recursively from 
 \item The new residual is computed from $\widehat{\mathbf{x}}_p$:
 \begin{align}
 \label{eq:lp2}
-\overline{\mathbf{x}}_p & = \overline{\mathbf{x}}_{p-1} - \widehat{\mathbf{x}}_p \\
+\overline{\mathbf{x}}_p & = \overline{\mathbf{x}}_{p-1} - \widehat{\mathbf{x}}_p \nonumber \\
 & = \left(\mathbf{I}_n - \mathbf{G}_p\right) \overline{\mathbf{x}}_{p-1}
 \end{align}
 \end{itemize}
 \end{itemize}
-This construction can be illustrated as follows:
-\begin{center}
-\begin{tikzpicture}[scale=0.8,transform shape,auto,>=latex',line width=1pt]
+This recursive construction is illustrated in Figure \ref{fig:algo_recursive}. Integrating recursively, the residual at iteration $p$ becomes:
+\begin{align}
+\label{eq:lp3}
+\overline{\mathbf{x}}_p & = \left(\mathbf{I}_n - \mathbf{G}_p\right) \left(\mathbf{I}_n - \mathbf{G}_{p-1}\right) \dots \left(\mathbf{I}_n - \mathbf{G}_1\right) \mathbf{x} \nonumber \\
+& = \displaystyle \prod_{q=1}^p \left(\mathbf{I}_n - \mathbf{G}_q\right) \mathbf{x}
+\end{align}
+and from equation \eqref{eq:lp1}, we obtain the filtered component at iteration $p$:
+\begin{align}
+\label{eq:lp4}
+\widehat{\mathbf{x}}_p & = \mathbf{G}_p \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{G}_q\right) \mathbf{x}
+\end{align}
+
+Combining equations \eqref{eq:bp2} with \eqref{eq:lp4}, we get an equivalence between $\mathbf{H}_p$ and $\mathbf{G}_p$ for $1 \le p \le P-1$:
+\begin{align}
+\label{eq:band_pass_filter}
+\Aboxed{\mathbf{H}_p = \mathbf{G}_p \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{G}_q\right)}
+\end{align}
+The last filtered component $\widehat{\mathbf{x}}_P$ is actually given by the last residual $\overline{\mathbf{x}}_{P-1}$
+\begin{align}
+\widehat{\mathbf{x}}_P = \mathbf{H}_P \mathbf{x} = \overline{\mathbf{x}}_{P-1}
+\end{align}
+So equation \eqref{eq:lp3} gives another expression of equation \eqref{eq:bp1}:
+\begin{align}
+\Aboxed{\mathbf{H}_P = \prod_{q=1}^{P-1} \left(\mathbf{I}_n - \mathbf{G}_q\right)}
+\end{align}
+
+\subsection{Inverse formula}
+
+To inverse equation \eqref{eq:band_pass_filter}, a preliminary step is necessary. We start by recursively showing that for $p > 1$:
+\begin{align}
+\label{eq:lemna}
+\mathbf{I}_n - \sum_{q=1}^{p-1} \mathbf{H}_q = \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{G}_q\right)
+\end{align}
+
+The initial case $p = 2$ is obvious: since $\mathbf{H}_1 = \mathbf{G}_1$ (equation \eqref{eq:band_pass_filter}), then $\mathbf{I}_n - \mathbf{H}_1 = \mathbf{I}_n - \mathbf{G}_1$. We now assume that equation \eqref{eq:lemna} holds for a given $p > 1$. As a consequence:
+\begin{align}
+\mathbf{I}_n - \sum_{q=1}^p \mathbf{H}_q & = \mathbf{I}_n - \sum_{q=1}^{p-1} \mathbf{H}_q - \mathbf{H}_p \nonumber \\
+& = \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{G}_q\right) - \mathbf{G}_p \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{G}_q\right) \nonumber \\
+& = \left(\mathbf{I}_n - \mathbf{G}_p\right) \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{G}_q\right) \nonumber \\
+& = \prod_{q=1}^p \left(\mathbf{I}_n - \mathbf{G}_q\right)
+\end{align}
+so equation \eqref{eq:lemna} also holds for $p+1$. We can conclude that \eqref{eq:lemna} holds for any $p > 2$. Inserting it into equation \eqref{eq:band_pass_filter}, we get:
+\begin{align}
+\mathbf{H}_p = \mathbf{G}_p \left(\mathbf{I}_n - \sum_{q=1}^{p-1} \mathbf{H}_q\right)
+\end{align}
+If $\displaystyle \left(\mathbf{I}_n - \sum_{q=1}^{p-1} \mathbf{H}_q\right)$ has a right inverse, then the filter $\mathbf{G}_p$ can be deduced from the band-pass filters:
+\begin{align}
+\Aboxed{\mathbf{G}_p = \mathbf{H}_p \left(\mathbf{I}_n - \sum_{q=1}^{p-1} \mathbf{H}_q\right)^{-1}}
+\end{align}
+
+\subsection{Embedded filters}
+The special case of embedded filters arises when for any $q > p$:
+\begin{align}
+\label{eq:embedded}
+\mathbf{G}_p \mathbf{G}_q = \mathbf{G}_q \mathbf{G}_p = \mathbf{G}_q
+\end{align}
+The corresponding band-pass filters can then be expressed for $1 \le p \le P-1$ as:
+\begin{align}
+\mathbf{H}_p & = \mathbf{G}_p \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{G}_q\right) \nonumber \\
+& = \left(\mathbf{G}_p - \mathbf{G}_p \mathbf{G}_{p-1}\right) \prod_{q=1}^{p-2} \left(\mathbf{I}_n - \mathbf{G}_q\right) \nonumber \\
+& = \left(\mathbf{G}_p - \mathbf{G}_{p-1}\right) \prod_{q=1}^{p-2} \left(\mathbf{I}_n - \mathbf{G}_q\right)
+\end{align}
+and since for each factor of $\displaystyle \prod_{q=1}^{p-2} \left(\mathbf{I}_n - \mathbf{G}_q\right)$:
+\begin{align}
+\left(\mathbf{G}_p - \mathbf{G}_{p-1}\right) \left(\mathbf{I}_n - \mathbf{G}_q\right) & = \mathbf{G}_p - \mathbf{G}_{p-1} - \left(\mathbf{G}_p \mathbf{G}_q - \mathbf{G}_{p-1} \mathbf{G}_q \right) \nonumber \\
+& = \mathbf{G}_p - \mathbf{G}_{p-1} - \left(\mathbf{G}_q - \mathbf{G}_q \right) \nonumber \\
+& = \mathbf{G}_p - \mathbf{G}_{p-1}
+\end{align}
+we finally get:
+\begin{align}
+\Aboxed{\mathbf{H}_p = \mathbf{G}_p - \mathbf{G}_{p-1}}
+\end{align}
+
+As a consequence, the construction of a sequence of embedded filters can done in parallel, as illustrated in Figure \ref{fig:algo_parallel}.
+
+\section{Real-case filters}
+
+\subsection{Low-pass and high-pass filters}
+
+For a sequence of filters, we assume that there is an invertible transform $\mathbf{S} \in \mathbb{R}^{n \times n}$ such that every component can be expressed as:
+\begin{align}
+\mathbf{G}_p = \mathbf{S}^{-1} \mathbf{D}_p \mathbf{S}
+\end{align}
+where $\mathbf{D}_p \in \mathbb{R}^{n \times n}$ is a diagonal matrix with diagonal elements between 0 and 1. The spectrum $\mathbf{d}_p \in \mathbb{R}^n$ contains all these diagonal elements: $D_{p,ii} = d_{p,i}$.\\
+$  $\\
+For a sequence of low-pass filters, all the spectra start from 1 and are monotonically decreasing. Symmetrically for a sequence of high-pass filters, all the spectra are monotonically increasing and end up at 1. In both cases, for any $p > 1$ and any element: $d_{p,i} \ge d_{p-1,i}$, as illustrated in Figure \ref{fig:filters_equivalence_low-high}.
+
+\subsection{High-pass filters built from low-pass filters}
+Often in practice, only low-pass filters $\mathbf{G}^l_p$ are actually implemented, through a diffusion process or an equivalent smoother. However, the high-pass filter $\mathbf{G}^h_p$ can be built as the complement of the low-pass filter sorted in opposite order $\mathbf{G}^l_{P-p}$:
+\begin{align}
+\mathbf{G}^h_p = \mathbf{I}_n - \mathbf{G}^l_{P-p}
+\end{align}
+
+Updating equation \eqref{eq:band_pass_filter}, the band-pass filter $\mathbf{H}^h_p$ corresponding to the high-pass filters is given for $1 \le p \le P-1$ by:
+\begin{align}
+\label{eq:band_pass_filter_hp}
+\mathbf{H}^h_p & = \mathbf{G}^h_p \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{G}^h_q\right) \nonumber \\
+& = \left(\mathbf{I}_n - \mathbf{G}^l_{P-p}\right) \prod_{q=1}^{p-1} \mathbf{G}^l_{P-q}
+\end{align}
+
+Figure \ref{fig:filters_equivalence} shows explicit low-pass filters and their complementary high-pass filters counterparts. The corresponding band-pass filters are also displayed in both cases. We can see that the band-pass filters have roughly the same structure in both cases, but are not identical.
+
+\subsection{Embedded filters}
+If a sequence of low-pass or high-pass filters is embedded, equation \eqref{eq:embedded} can be simplified for $q < p$ into:
+\begin{align}
+d_{p,i} d_{q,i} = d_{q,i}
+\end{align}
+which is only true if:
+\begin{align}
+\left\{ \begin{array}{rl}
+\text{either } & d_{q,i} = 0 \\
+\text{or } & d_{p,i} = 1
+\end{array}
+\right.
+\end{align}
+A sequence of embedded low-pass filters is illustrated on Figure \ref{fig:filters_equivalence_embedded}. If the sequence of low-pass filters is embedded, it is easy to see that the sequence of complementary high-pass filters is embedded too, and the corresponding band-pass filters can be derived from equation \eqref{eq:band_pass_filter_hp}:
+\begin{align}
+\mathbf{H}^h_p & = \left(\mathbf{I}_n - \mathbf{G}^l_{P-p}\right) \prod_{q=1}^{p-1} \mathbf{G}^l_{P-q} \nonumber \\
+& = \mathbf{G}^l_{P-p+1} - \mathbf{G}^l_{P-p}
+\end{align}
+So the corresponding band-pass filters are equivalent for the low-pass filters and their high-pass complementary filters (sorted in opposite order):
+\begin{align}
+\Aboxed{\mathbf{H}^h_p = \mathbf{H}^l_{P-p+1}}
+\end{align}
+
+It seems that the difference between a sequence of low-pass filters and the sequence of the complementary high-pass filters becomes greater when more than two bands of the corresponding band-pass filters overlap. In the case of embedded filters where only two bands overlap, this difference vanishes.
+
+\subsection{Pseudo-embedded filters}
+Embedded filter are appealing because they can be applied in parallel (see Figure \ref{fig:algo_parallel}). However, low-pass filters based on a diffusion process or an equivalent smoother are not able to produce this kind of filters. The corresponding convolution functions in grid-point space induced by these methods are generally positive, whereas embedded filters require negative lobes, as illustrated in Figure \ref{fig:band_pass_functions}.\\
+$  $\\
+A possible option is to use the parallel scheme of Figure \ref{fig:algo_parallel} with non-embedded filters. If the different components of the sequence of low-pass filters are sufficiently separated, the difference with the recursive scheme of Figure \ref{fig:algo_recursive} is minor, as illustrated in Figure \ref{fig:filters_equivalence_pseudo-embedded}.
+
+\subsection{Reduced resolution filters}
+
+For a sequence of low-pass filters, it is possible to reduce the memory and computational cost by storing their output at a lower resolution. For this, we redefine the band-pass filter output space: $\mathbf{H}_p \in \mathbb{R}^{\widehat{n}_p \times n}$ where:
+\begin{itemize}
+\item $\widehat{n}_q \le \widehat{n}_p$ for $q < p$,
+\item $\widehat{n}_P = n$ for the last component.
+\end{itemize}
+The linear transform $\mathbf{F}^\dag$ is still defined as:
+\begin{align}
+\mathbf{F}^\dag = \left( \begin{array}{c}
+\mathbf{H}_1 \\
+\mathbf{H}_2 \\
+\vdots \\
+\mathbf{H}_P
+\end{array}
+\right)
+\end{align}
+but its left-inverse is redefined as:
+\begin{align}
+\mathbf{F} = \left(\mathbf{S}_{P \leftarrow 1} \mathbf{S}_{P \leftarrow 2} \dots \mathbf{I}_n\right)
+\end{align}
+where $\mathbf{S}_{p \leftarrow q} \in \mathbb{R}^{\widehat{n}_p \times \widehat{n}_q}$ is an interpolator from the resolution $\widehat{n}_q$ to the resolution $\widehat{n}_p$. Thus, $\mathbf{F} \mathbf{F}^\dag$ is the sum of the band-pass filters interpolated at full resolution:
+\begin{align}
+\mathbf{F} \mathbf{F}^\dag = \sum_{p=1}^P \mathbf{S}_{P \leftarrow p} \mathbf{H}_p
+\end{align}
+and the size of the decomposition space (i.e. the number of rows of $\mathbf{F}^\dag$) is the sum of all the sizes of the components:
+\begin{align}
+\widehat{n} = \sum_{p=1}^P \widehat{n}_p
+\end{align}
+
+From the filters $\mathbf{G}_p \in \mathbb{R}^{\widehat{n}_p \times n}$, the band-pass filters $\mathbf{H}_p$ are computed for $1 \le p \le P-1$ as:
+\begin{align}
+\label{eq:band_pass_filter_lr}
+\Aboxed{\mathbf{H}_p = \mathbf{G}_p \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{S}_{P \leftarrow q} \mathbf{G}_q\right)}
+\end{align}
+and the last component as:
+\begin{align}
+\Aboxed{\mathbf{H}_P = \prod_{q=1}^{P-1} \left(\mathbf{I}_n - \mathbf{S}_{P \leftarrow q} \mathbf{G}_q\right)}
+\end{align}
+The updated recursive scheme is given by Figure \ref{fig:algo_recursive_lr}.\\
+$  $\\
+For the embedded filters, the assumption \eqref{eq:embedded} should include the interpolators:
+\begin{align}
+\mathbf{G}_p \mathbf{S}_{P \leftarrow q} \mathbf{G}_q = \mathbf{S}_{p \leftarrow q} \mathbf{G}_q \mathbf{S}_{P \leftarrow p} \mathbf{G}_p = \mathbf{S}_{p \leftarrow q} \mathbf{G}_q
+\end{align}
+and the interopolators should be transitive, i.e. for $q < p$:
+\begin{align}
+\mathbf{S}_{P \leftarrow p} \mathbf{S}_{p \leftarrow q} = \mathbf{S}_{P \leftarrow q}
+\end{align}
+If these conditions are fulfilled, the updated parallel scheme is shown in Figure \ref{fig:algo_parallel_lr}.
+
+% Bibliography
+\bibliographystyle{mybib-en}
+\bibliography{filter_banks_localization}
+
+\clearpage
+
+
+
+\section*{Figures}
+
+\begin{figure}[!ht]
+\centering
+\begin{tikzpicture}[scale=1.0,transform shape,auto,>=latex',line width=1pt]
 \tikzstyle{block} = [draw, shape=rectangle, minimum height=0.8cm, minimum width=3.0cm]
 \tikzstyle{branch}=[fill,shape=circle,minimum size=5pt,inner sep=0pt]
 
@@ -251,96 +444,12 @@ This construction can be illustrated as follows:
 \draw[->] (branch3) node[branch] {} |- (dots2);
 
 \end{tikzpicture}
-\end{center}
+\caption{Recursive filter banks. \label{fig:algo_recursive}}
+\end{figure}
 
-Integrating recursively, the residual at iteration $p$ becomes:
-\begin{align}
-\label{eq:lp3}
-\overline{\mathbf{x}}_p & = \left(\mathbf{I}_n - \mathbf{G}_p\right) \left(\mathbf{I}_n - \mathbf{G}_{p-1}\right) \dots \left(\mathbf{I}_n - \mathbf{G}_1\right) \mathbf{x} \nonumber \\
-& = \displaystyle \prod_{q=1}^p \left(\mathbf{I}_n - \mathbf{G}_q\right) \mathbf{x}
-\end{align}
-and from \eqref{eq:lp1}, we obtain the filtered component at iteration $p$:
-\begin{align}
-\label{eq:lp4}
-\widehat{\mathbf{x}}_p & = \mathbf{G}_p \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{G}_q\right) \mathbf{x}
-\end{align}
-
-Combining equations \eqref{eq:bp2} with \eqref{eq:lp4}, we get an equivalence between $\mathbf{H}_p$ and $\mathbf{G}_p$ for $1 \le p \le P-1$:
-\begin{align}
-\label{eq:band_pass_filter}
-\mathbf{H}_p = \mathbf{G}_p \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{G}_q\right)
-\end{align}
-The last filtered component $\widehat{\mathbf{x}}_P$ is actually given by the last residual $\overline{\mathbf{x}}_{P-1}$
-\begin{align}
-\widehat{\mathbf{x}}_P = \mathbf{H}_P \mathbf{x} = \overline{\mathbf{x}}_{P-1}
-\end{align}
-So equation \eqref{eq:lp3} gives another expression of equation \eqref{eq:bp1}:
-\begin{align}
-\mathbf{H}_P = \prod_{q=1}^{P-1} \left(\mathbf{I}_n - \mathbf{G}_q\right)
-\end{align}
-
-\subsection{Inverse formula}
-
-To inverse equation \eqref{eq:band_pass_filter}, a preliminary step is necessary. We start by showing recursively that for $p > 1$:
-\begin{align}
-\label{eq:lemna}
-\mathbf{I}_n - \sum_{q=1}^{p-1} \mathbf{H}_q = \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{G}_q\right)
-\end{align}
-
-The initial case $p = 2$ is obvious: since $\mathbf{H}_1 = \mathbf{G}_1$ (equation \eqref{eq:band_pass_filter}), then $\mathbf{I}_n - \mathbf{H}_1 = \mathbf{I}_n - \mathbf{G}_1$. We now assume that equation \eqref{eq:lemna} holds for a given $p > 1$. As a consequence:
-\begin{align}
-\mathbf{I}_n - \sum_{q=1}^p \mathbf{H}_q & = \mathbf{I}_n - \sum_{q=1}^{p-1} \mathbf{H}_q - \mathbf{H}_p \nonumber \\
-& = \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{G}_q\right) - \mathbf{G}_p \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{G}_q\right) \nonumber \\
-& = \left(\mathbf{I}_n - \mathbf{G}_p\right) \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{G}_q\right) \nonumber \\
-& = \prod_{q=1}^p \left(\mathbf{I}_n - \mathbf{G}_q\right)
-\end{align}
-so equation \eqref{eq:lemna} also holds for $p+1$. We can conclude that \eqref{eq:lemna} holds for any $p > 2$. Inserting it into equation \eqref{eq:band_pass_filter}, we get:
-\begin{align}
-\mathbf{H}_p = \mathbf{G}_p \left(\mathbf{I}_n - \sum_{q=1}^{p-1} \mathbf{H}_q\right)
-\end{align}
-If $\displaystyle \left(\mathbf{I}_n - \sum_{q=1}^{p-1} \mathbf{H}_q\right)$ has a right inverse, then the filter $\mathbf{G}_p$ can be deduced from the band-pass filters:
-\begin{align}
-\mathbf{G}_p = \mathbf{H}_p \left(\mathbf{I}_n - \sum_{q=1}^{p-1} \mathbf{H}_q\right)^{-1}
-\end{align}
-
-\subsection{Low-pass and high-pass filters}
-For a sequence of filters, we assume that there is an invertible transform $\mathbf{S} \in \mathbb{R}^{n \times n}$ such that every component can be expressed as:
-\begin{align}
-\mathbf{G}_p = \mathbf{S}^{-1} \mathbf{D}_p \mathbf{S}
-\end{align}
-where $\mathbf{D}_p \in \mathbb{R}^{n \times n}$ is a diagonal matrix with coefficients between 0 and 1. The spectrum $\mathbf{d}_p \in \mathbb{R}^n$ contains all these coefficients: $D_{p,ii} = d_{p,i}$.\\
-$  $\\
-For a sequence of low-pass filters, all the spectra start from 1 and are monotonically decreasing. Symmetrically for a sequence of high-pass filters, all the spectra are monotonically increasing and end up at 1. In both cases, for any $p > 1$ and any coefficient $d_{p,i}$ of $\mathbf{d}_p$: $d_{p,i} \ge d_{p-1,i}$, as illustrated in Figure \ref{fig:filters_equivalence_low-high}.
-
-\begin{center}
-\includegraphics[width=0.48\linewidth]{filters_equivalence_low.pdf}
-\includegraphics[width=0.48\linewidth]{filters_equivalence_high.pdf}
-\captionof{figure}{Spectra of low-pass filters (top left) and high-pass filters (top right), and their equivalent band-pass filters (bottom). \label{fig:filters_equivalence_low-high}}
-\end{center}
-
-\subsection{Embedded filters}
-The special case of embedded filters arises when for any $p > q$:
-\begin{align}
-\label{eq:embedded}
-\mathbf{G}_p \mathbf{G}_q = \mathbf{G}_q \mathbf{G}_p = \mathbf{G}_q
-\end{align}
-The corresponding band-pass filters can then be expressed for $1 \le p \le P-1$ as:
-\begin{align}
-\mathbf{H}_p & = \mathbf{G}_p \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{G}_q\right) \nonumber \\
-& = \left(\mathbf{G}_p - \mathbf{G}_p \mathbf{G}_{p-1}\right) \prod_{q=1}^{p-2} \left(\mathbf{I}_n - \mathbf{G}_q\right) \nonumber \\
-& = \left(\mathbf{G}_p - \mathbf{G}_{p-1}\right) \prod_{q=1}^{p-2} \left(\mathbf{I}_n - \mathbf{G}_q\right) \nonumber \\
-& = \mathbf{G}_p - \mathbf{G}_{p-1}
-\end{align}
-because for each factor of $\displaystyle \prod_{q=1}^{p-2} \left(\mathbf{I}_n - \mathbf{G}_q\right)$:
-\begin{align}
-\left(\mathbf{G}_p - \mathbf{G}_{p-1}\right) \left(\mathbf{I}_n - \mathbf{G}_q\right) & = \mathbf{G}_p - \mathbf{G}_{p-1} - \left(\mathbf{G}_p \mathbf{G}_q - \mathbf{G}_{p-1} \mathbf{G}_q \right) \nonumber \\
-& = \mathbf{G}_p - \mathbf{G}_{p-1} - \left(\mathbf{G}_q - \mathbf{G}_q \right) \nonumber \\
-& = \mathbf{G}_p - \mathbf{G}_{p-1}
-\end{align}
-
-As a consequence, the construction of a sequence of embedded filters can be illustrated as follows:
-\begin{center}
-\begin{tikzpicture}[scale=0.8,transform shape,auto,>=latex',line width=1pt]
+\begin{figure}[!ht]
+\centering
+\begin{tikzpicture}[scale=1.0,transform shape,auto,>=latex',line width=1pt]
 \tikzstyle{block} = [draw, shape=rectangle, minimum height=0.8cm, minimum width=3.0cm]
 \tikzstyle{branch}=[fill,shape=circle,minimum size=5pt,inner sep=0pt]
 \tikzstyle{sum} = [draw, shape=circle, node distance=1.5cm, line width=1pt, minimum width=1.25em]
@@ -397,156 +506,142 @@ As a consequence, the construction of a sequence of embedded filters can be illu
 \draw[->] (IFPx.north) -- (sumPm1.south);
 \draw[->] (sumPm1.east) -- (xP.west);
 \end{tikzpicture}
-\end{center}
+\caption{Parallel filter banks. \label{fig:algo_parallel}}
+\end{figure}
 
+\begin{figure}[!ht]
+\centering
+\includegraphics[width=0.48\linewidth]{filters_equivalence_low.pdf}
+\includegraphics[width=0.48\linewidth]{filters_equivalence_high.pdf}
+\caption{Spectra of low-pass filters (top left) and high-pass filters (top right), and their corresponding band-pass filters (bottom). \label{fig:filters_equivalence_low-high}}
+\end{figure}
 
-
-
-
-If a sequence of low-pass or high-pass filters is embedded, equation \eqref{eq:embedded} can be simplified into
-\begin{align}
-d_{p,i} d_{q,i} = d_{q,i}
-\end{align}
-which is only true if:
-\begin{align}
-\left\{ \begin{array}{rl}
-\text{either } & d_{q,i} = 0 \\
-\text{or } & d_{p,i} = 1
-\end{array}
-\right.
-\end{align}
-A sequence of embedded low-pass filters is illustrated on Figure \ref{fig:filters_equivalence_embedded}.
-
-\begin{center}
-\includegraphics[width=0.48\linewidth]{filters_equivalence_embedded.pdf}
-\captionof{figure}{Spectra of embedded low-pass filters (top) and the equivalent band-pass filters (bottom). \label{fig:filters_equivalence_embedded}}
-\end{center}
-
-\subsection{High-pass filters built from low-pass filters}
-Often in practice, only low-pass filters are actually implemented, through a diffusion process or an equivalent smoother. However, the high-pass filter $\mathbf{G}^h_p \in \mathbb{R}^{n \times n}$ can be built as the complement of the low-pass filter sorted in opposite order $\mathbf{G}^l_{P-p} \in \mathbb{R}^{n \times n}$:
-\begin{align}
-\mathbf{G}^h_p = \mathbf{I}_n - \mathbf{G}^l_{P-p}
-\end{align}
-
-Updating equation \eqref{eq:band_pass_filter}, the band-pass filter $\mathbf{H}^h_p$ corresponding to the high-pass filters is given for $1 \le p \le P-1$ by:
-\begin{align}
-\label{eq:band_pass_filter_hp}
-\mathbf{H}^h_p & = \mathbf{G}^h_p \prod_{q=1}^{p-1} \left(\mathbf{I}_n - \mathbf{G}^h_q\right) \nonumber \\
-& = \left(\mathbf{I}_n - \mathbf{G}^l_{P-p}\right) \prod_{q=1}^{p-1} \mathbf{G}^l_{P-q}
-\end{align}
-
-Figure \ref{fig:filters_equivalence} shows explicit low-pass filters and their complementary high-pass filters counterparts. The equivalent band-pass filters are also displayed in both cases. We can see that the band-pass filters have roughly the same structure in both cases, but are not identical.
-
-\begin{center}
+\begin{figure}[!ht]
+\centering
 \includegraphics[width=0.48\linewidth]{filters_equivalence_complementary.pdf}
-\captionof{figure}{Spectra of explicit low-pass filters (top left) and their complementary high-pass filters counterparts (top right). The equivalent band-pass filters are displayed for both cases in the bottom panels, the dashed black line indicating the sum of all the band-pass filters. \label{fig:filters_equivalence}}
-\end{center}
+\caption{Spectra of low-pass filters (top, solid) and the complementary high-pass filters (top, dashed) and the corresponding band-pass filter (bottom). \label{fig:filters_equivalence}}
+\end{figure}
 
-If the sequence of low-pass filters is embedded, it is easy to see that the sequence of complementary high-pass filters is embedded too, and the corresponding band-pass filters can be derived from equation \eqref{eq:band_pass_filter_hp}:
-\begin{align}
-\mathbf{H}^h_p & = \left(\mathbf{I}_n - \mathbf{G}^l_{P-p}\right) \prod_{q=1}^{p-1} \mathbf{G}^l_{P-q} \nonumber \\
-& = \mathbf{G}^l_{P-p+1} - \mathbf{G}^l_{P-p}
-\end{align}
-So the corresponding band-pass filters are equivalent for the low-pass filters and their high-pass complementary filters (sorted in opposite order):
-\begin{align}
-\mathbf{H}^h_p = \mathbf{H}^l_{P-p+1}
-\end{align}
+\begin{figure}[!ht]
+\centering
+\includegraphics[width=0.48\linewidth]{filters_equivalence_embedded.pdf}
+\caption{Spectra of embedded low-pass filters (top) and the corresponding band-pass filters (bottom). \label{fig:filters_equivalence_embedded}}
+\end{figure}
 
-\subsection{Pseudo-embedded filters}
+\begin{figure}[!ht]
+\centering
+\includegraphics[width=\linewidth]{band_pass_functions.pdf}
+\caption{Spectra of low-pass filters (top left) and embedded low-pass filters (top right), and the corresponding convolution functions (bottom). \label{fig:band_pass_functions}}
+\end{figure}
 
-\end{document}
+\begin{figure}[!ht]
+\centering
+\includegraphics[width=0.48\linewidth]{filters_equivalence_pseudo-embedded.pdf}
+\caption{Spectra of low-pass filters (top) and the corresponding band-pass filters computed in recursive (bottom, solid) or parallel mode (bottom, dashed). \label{fig:filters_equivalence_pseudo-embedded}}
+\end{figure}
 
-To illustrate the similarities and differences between the low-pass and high-pass equivalent filters, we start from a random field $\mathbf{x}$ with different scales depending on the location in Figure \ref{fig:init}, and we apply two low-pass or high-pass filters. Figure \ref{fig:band_large} shows the band with the largest scale, i.e. $\widehat{\mathbf{x}}^l_1$ and $\widehat{\mathbf{x}}^h_3$, figure \ref{fig:band_inter} shows the band with the intermediate scale, i.e. $\widehat{\mathbf{x}}^l_2$ and $\widehat{\mathbf{x}}^h_2$, and figure \ref{fig:band_small} shows the band with the smallest scale, i.e. $\widehat{\mathbf{x}}^l_3$ and $\widehat{\mathbf{x}}^h_1$. Here, the explicit low-pass filters use the \texttt{scipy.ndimage.gaussian\_filter} function of \texttt{Python} for $\mathbf{G}^l_p$ and $\mathbf{G}^h_p$ is its complement.
+\begin{figure}[!ht]
+\centering
+\begin{tikzpicture}[scale=1.0,transform shape,auto,>=latex',line width=1pt]
+\tikzstyle{block} = [draw, shape=rectangle, minimum height=0.8cm, minimum width=3.0cm]
+\tikzstyle{branch}=[fill,shape=circle,minimum size=5pt,inner sep=0pt]
 
-\begin{center}
-\includegraphics[width=0.49\linewidth]{init.pdf}
-\captionof{figure}{Random field with different scales depending on the location. \label{fig:init}}
-\end{center}
+% Input
+\node at (-2.5,0) (input) {$\mathbf{x}$};
 
-\begin{center}
-\includegraphics[width=0.49\linewidth]{sdl_hp_band_3.pdf}
-\includegraphics[width=0.49\linewidth]{sdl_lp_band_1.pdf}
-\captionof{figure}{Largest scale band for low-pass (left) and high-pass (right) filters. \label{fig:band_large}}
-\end{center}
+% Filter 1
+\node [block, right of=input, node distance=3.0cm] (F1) {$\mathbf{G}_1$};
+\node [right of=F1, node distance=2.7cm, yshift=-0.02cm] (F1x) {$\widehat{\mathbf{x}}_1$};
+\node [block, below of=F1, node distance=1.0cm] (ImF1) {$\mathbf{I}_n - \mathbf{S}_{P \leftarrow 1} \mathbf{G}_1$};
+\node [right of=ImF1, node distance=2.7cm, yshift=-0.02cm] (ImF1x) {$\overline{\mathbf{x}}_1$};
+\path (input) -- coordinate(branch1) (F1);
+\draw[->] (input) -- (F1);
+\draw[->] (F1) -- ([yshift=0.02cm]F1x.west);
+\draw[->] (ImF1) -- ([yshift=0.02cm]ImF1x.west);
+\draw[->] (branch1) node[branch] {} |- (ImF1);
 
-\begin{center}
-\includegraphics[width=0.49\linewidth]{sdl_hp_band_2}
-\includegraphics[width=0.49\linewidth]{sdl_lp_band_2.pdf}
-\captionof{figure}{Intermediate scale band for low-pass (left) and high-pass (right) filters. \label{fig:band_inter}}
-\end{center}
+% Filter 2
+\node [block, right of=ImF1, node distance=5.8cm] (F2) {$\mathbf{G}_2$};
+\node [right of=F2, node distance=2.7cm, yshift=-0.02cm] (F2x) {$\widehat{\mathbf{x}}_2$};
+\node [block, below of=F2, node distance=1.0cm] (ImF2) {$\mathbf{I}_n - \mathbf{S}_{P \leftarrow 2} \mathbf{G}_2$};
+\node [right of=ImF2, node distance=2.7cm, yshift=-0.02cm] (ImF2x) {$\overline{\mathbf{x}}_2$};
+\path (ImF1x) -- coordinate(branch2) (F2);
+\draw[->] (ImF1x) -- (F2);
+\draw[->] (F2) -- ([yshift=0.02cm]F2x.west);
+\draw[->] (ImF2) -- ([yshift=0.02cm]ImF2x.west);
+\draw[->] (branch2) node[branch] {} |- (ImF2);
 
-\begin{center}
-\includegraphics[width=0.49\linewidth]{sdl_hp_band_1.pdf}
-\includegraphics[width=0.49\linewidth]{sdl_lp_band_3.pdf}
-\captionof{figure}{Smallest scale band for low-pass (left) and high-pass (right) filters. \label{fig:band_small}}
-\end{center}
+% Etc
+\node [right of=ImF2x, node distance=2.0cm] (dots1) {\dots};
+\node [below of=dots1, node distance=1.0cm] (dots2) {\dots};
+\path (ImF2x) -- coordinate(branch3) (dots1);
+\draw[->] (ImF2x) -- (dots1);
+\draw[->] (branch3) node[branch] {} |- (dots2);
 
+\end{tikzpicture}
+\caption{Recursive filter banks with reduced resolutions. \label{fig:algo_recursive_lr}}
+\end{figure}
 
+\begin{figure}[!ht]
+\centering
+\begin{tikzpicture}[scale=1.0,transform shape,auto,>=latex',line width=1pt]
+\tikzstyle{block} = [draw, shape=rectangle, minimum height=0.8cm, minimum width=3.0cm]
+\tikzstyle{branch}=[fill,shape=circle,minimum size=5pt,inner sep=0pt]
+\tikzstyle{sum} = [draw, shape=circle, node distance=1.5cm, line width=1pt, minimum width=1.25em]
 
-\subsection{Application}
+% Input
+\node at (-2.5,0) (input) {$\mathbf{x}$};
 
-The standard scale-dependent localization (SDL) described in \citet{buehner_2015b} is a case where the band-pass filters are:
-\begin{itemize}
-\item either defined explicitely in spectral space, in a "wavelet-like" fashion,
-\item or built recursively from high-pass filters, themselves implemented as complements of diffusion-based low-pass filters.
-\end{itemize}
-$  $\\
-However, Figure \ref{fig:} shows that 
+% Filter 1
+\node [block, right of=input, node distance=3.0cm] (F1) {$\mathbf{G}_1$};
+\node [block, below of=F1, node distance=5.0cm] (F2) {$\mathbf{G}_2$};
+\node [block, below of=F2, node distance=4.0cm] (FPm1) {$\mathbf{G}_{P-1}$};
+\node [block, below of=FPm1, node distance=5.0cm] (FP) {$\mathbf{I}_n$};
 
+\path (input) -- coordinate(branch1) (F1);
+\draw[->] (input) -- (F1);
+\draw[->] (branch1) node[branch] {} |- (F2);
+\node [branch, below of=branch1, node distance=5.0cm] (branch2) {};
+\node [below of=branch2, node distance=2.0cm] (dots0) {\dots};
+\draw[-] (branch2) {} -- (dots0.north);
+\draw[->] (dots0.south) {} |- (FPm1);
+\node [branch, below of=dots0, node distance=2.0cm] (branchPm1) {};
+\draw[->] (branchPm1) {} |- (FP);
 
+\node [right of=F1, node distance=4.7cm, yshift=-0.02cm] (x1) {$\widehat{\mathbf{x}}_1$};
+\draw[->] (F1.east) -- (x1.west);
+\node [branch, right of=F1, node distance=2.0cm, yshift=-0.02cm] (b1) {};
 
-% Bibliography
-\bibliographystyle{mybib-en}
-\bibliography{filter_banks_localization}
-\end{document}
+\node [block, below of=F1, node distance=1.15cm, xshift=2.0cm] (mIF1x) {$-\mathbf{S}_{1 \leftarrow 2}$};
+\node [block, above of=F2, node distance=1.15cm, xshift=2.0cm] (IF2x) {$\mathbf{I}_n$};
+\node [sum, below of=mIF1x, node distance=1.35cm] (sum1) {};
+\node at (sum1) (plus) {{\footnotesize$+$}};
+\node [right of=sum1, node distance=2.7cm, yshift=-0.02cm] (x2) {$\widehat{\mathbf{x}}_2$};
+\draw[->] (F1.east) -| (mIF1x.north);
+\draw[->] (F2.east) -| (IF2x.south);
+\draw[->] (mIF1x.south) -- (sum1.north);
+\draw[->] (IF2x.north) -- (sum1.south);
+\draw[->] (sum1.east) -- (x2.west);
 
+\node [below of=F2, node distance=1.15cm, xshift=2.0cm] (dots1) {\dots};
+\node [above of=FPm1, node distance=1.15cm, xshift=2.0cm] (dots2) {\dots};
+\draw[->] (F2.east) -| ([yshift=0.2cm]dots1.north);
+\node [branch, right of=F2, node distance=2.0cm, yshift=-0.02cm] (b2) {};
+\draw[->] (FPm1.east) -| ([yshift=-0.2cm]dots2.south);
+\node [branch, right of=FPm1, node distance=2.0cm, yshift=-0.02cm] (bPm1) {};
 
+\node [block, below of=FPm1, node distance=1.15cm, xshift=2.0cm] (mIFPm1x) {$-\mathbf{S}_{P-1 \leftarrow P}$};
+\node [block, above of=FP, node distance=1.15cm, xshift=2.0cm] (IFPx) {$\mathbf{I}_n$};
+\node [sum, below of=mIFPm1x, node distance=1.35cm] (sumPm1) {};
+\node at (sumPm1) (plus) {{\footnotesize$+$}};
+\node [right of=sumPm1, node distance=2.7cm, yshift=-0.02cm] (xP) {$\widehat{\mathbf{x}}_P$};
+\draw[->] (FPm1.east) -| (mIFPm1x.north);
+\draw[->] (FP.east) -| (IFPx.south);
+\draw[->] (mIFPm1x.south) -- (sumPm1.north);
+\draw[->] (IFPx.north) -- (sumPm1.south);
+\draw[->] (sumPm1.east) -- (xP.west);
+\end{tikzpicture}
+\caption{Parallel filter banks with reduced resolutions. \label{fig:algo_parallel_lr}}
+\end{figure}
 
-\end{document}
-
-The interpolation-based filter banks localization (ILPFL) is a special case of a construction with filter banks localization (FBL) where the low-pass filter $\mathbf{G}_p$ for component $p$ is given by:
-\begin{align}
-\mathbf{G}_p = \mathbf{N}_p \mathbf{S}_p^\mathrm{T}
-\end{align}
-where the i$^\text{th}$ coefficient of the diagonal normalization matrix $\mathbf{N}_p$ is equal to the inverse of the i$^\text{th}$ coefficient of the vector $\mathbf{S}_p^\mathrm{T} \mathbf{1}_n$.
-
-\subsection{Methods comparison}
-To illustrate the similarities and differences between the SDL and IFBL methods, we start from a random field $\mathbf{x}$ with different scales depending on the location in Figure \ref{fig:init}. In Figure \ref{fig:filt_1}, the filtered field $\widehat{\mathbf{x}}_1$ at low resolution captures the largest scales of the signal. These scales are removed in the corresponding residual $\overline{\mathbf{x}}_1$, in Figure \ref{fig:res_1}. In Figure \ref{fig:filt_2}, the filtered field $\widehat{\mathbf{x}}_2$ at intermediate resolution captures the intermediate scales of the signal. Only the smallest scale are left in the final residual $\overline{\mathbf{x}}_2$, in Figure \ref{fig:res_2}.\\
-$  $\\
-Here, the SDL uses the \texttt{scipy.ndimage.gaussian\_filter} function of \texttt{Python} for $\mathbf{G}_p$. The IFBL uses a standard bilinear interpolation. The filtering scales of the SDL and the low-resolution grids of the IFBL have been briefly tuned to yield visually similar results.
-
-\begin{center}
-\includegraphics[width=0.49\linewidth]{init.pdf}
-\captionof{figure}{Random field with different scales depending on the location. \label{fig:init}}
-\end{center}
-
-\begin{center}
-\includegraphics[width=0.49\linewidth]{sdl_1_filt.pdf}
-\includegraphics[width=0.49\linewidth]{ifbl_1_filt.pdf}
-\captionof{figure}{Filtered field at low-resolution 1 with SDL (left) and IFBL (right)and corresponding residual (right). \label{fig:filt_1}}
-\end{center}
-
-\begin{center}
-\includegraphics[width=0.49\linewidth]{sdl_1_res.pdf}
-\includegraphics[width=0.49\linewidth]{ifbl_1_res.pdf}
-\captionof{figure}{Residual field at low-resolution 1 with SDL (left) and IFBL (right). \label{fig:res_1}}
-\end{center}
-
-\begin{center}
-\includegraphics[width=0.49\linewidth]{sdl_2_filt.pdf}
-\includegraphics[width=0.49\linewidth]{ifbl_2_filt.pdf}
-\captionof{figure}{Filtered field at low-resolution 2 with SDL (left) and IFBL (right)and corresponding residual (right). \label{fig:filt_2}}
-\end{center}
-
-\begin{center}
-\includegraphics[width=0.49\linewidth]{sdl_2_res.pdf}
-\includegraphics[width=0.49\linewidth]{ifbl_2_res.pdf}
-\captionof{figure}{Residual field at low-resolution 2 with SDL (left) and IFBL (right). \label{fig:res_2}}
-\end{center}
-
-The interpolation-based filter banks localization (IFBL) leads to a smaller size of the transformed space $\widehat{n}$ than the scale-dependent localization (SDL), reducing the required memory for the same number of components. Also, the choice of the grids for the low-resolution components is completely flexible. Once the interpolation from low resolution to full resolution and its adjoint are available, the construction of the low-pass filter is straightforward. However, the IFBL requires that the localization matrix is applied in the geoemetry of each component, which is more complicated but also cheaper because the localization is applied at lower resolution.
-
-% Bibliography
-\bibliographystyle{mybib-en}
-\bibliography{filter_banks_localization}
-\end{document}
+\end{document} 
